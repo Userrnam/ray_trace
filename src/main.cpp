@@ -102,18 +102,24 @@ float intersect_plane(Plane plane, Ray ray) {
 float intersect_sphere(Sphere sphere, Ray ray) {
 	ray.origin = ray.origin - sphere.pos;
 
-	float a = 1; // dot(ray.dir, ray.dir);
-	float b = 2 * dot(ray.dir, ray.origin);
+	float b_half = dot(ray.dir, ray.origin);
 	float c = dot(ray.origin, ray.origin) - sphere.r * sphere.r;
-	float D = b*b - 4*a*c;
+	float D = b_half * b_half - c;
 
 	if (D <= tolerance)  return -1;
 
-	float Droot = sqrt(D);
-	float result1 = (-b + Droot)/(2 * a);
-	float result2 = (-b - Droot)/(2 * a);
+	return -b_half - sqrt(D);
 
-	return result1 > result2 ? result2 : result1;
+/*
+	float a = 1; // dot(ray.dir, ray.dir);
+	float b_half = dot(ray.dir, ray.origin);
+	float c = dot(ray.origin, ray.origin) - sphere.r * sphere.r;
+	float D = b_half * b_half - a*c;
+
+	if (D <= tolerance)  return -1;
+
+	return (-b_half - sqrt(D)) / a;
+*/
 }
 
 u32 state;
@@ -134,7 +140,39 @@ vec3 rand_vec() {
 	return res;
 }
 
-vec3 ray_cast(World *world, Ray _ray) {
+bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
+	float min_distance = MAXFLOAT;
+	bool hit = false;
+
+	mat = 0;
+	for (auto& plane : world->planes) {
+		float distance = intersect_plane(plane, ray);
+		if (distance > 0 && distance < min_distance) {
+			hit = true;
+			mat = plane.mat_index;
+			min_distance = distance;
+
+			pos = distance * ray.dir + ray.origin;
+			normal = plane.normal;
+		}
+	}
+
+	for (auto& sphere : world->spheres) {
+		float distance = intersect_sphere(sphere, ray);
+		if (distance > 0 && distance < min_distance) {
+			hit = true;
+			mat = sphere.mat_index;
+			min_distance = distance;
+
+			pos = distance * ray.dir + ray.origin;
+			normal = norm(pos - sphere.pos);
+		}
+	}
+
+	return hit;
+}
+
+vec3 ray_color(World *world, Ray _ray) {
 	const int bounce_count = 8;
 	const int sample_count = 200;
 
@@ -146,64 +184,24 @@ vec3 ray_cast(World *world, Ray _ray) {
 		vec3 attenuation = { 1, 1, 1 };
 
 		for (int bounce = 0; bounce < bounce_count; ++bounce) {
-			float min_distance = MAXFLOAT;
-			bool hit = false;
-			int mat = 0;
-			vec3 normal = {};
+			vec3 pos, normal;
+			int mat;
 
-			Ray new_ray;
-			for (auto& plane : world->planes) {
-				float distance = intersect_plane(plane, ray);
-				if (distance > 0 && distance < min_distance) {
-					hit = true;
-					mat = plane.mat_index;
-					min_distance = distance;
-
-					// update ray
-					new_ray.origin = distance * ray.dir + ray.origin;
-					normal = plane.normal;
-
-					vec3 reflection_ray = reflect(ray.dir, plane.normal);
-					new_ray.dir = lerp(norm(rand_vec()), reflection_ray, world->materials[mat].specular);
-					if (dot(new_ray.dir, plane.normal) < 0) {
-						new_ray.dir = -new_ray.dir;
-					}
-				}
-			}
-
-			for (auto& sphere : world->spheres) {
-				float distance = intersect_sphere(sphere, ray);
-				if (distance > 0 && distance < min_distance) {
-					hit = true;
-					mat = sphere.mat_index;
-					min_distance = distance;
-
-					new_ray.origin = distance * ray.dir + ray.origin;
-
-					normal = norm(new_ray.origin - sphere.pos);
-					vec3 reflection_ray = reflect(ray.dir, normal);
-
-					new_ray.dir = lerp(norm(rand_vec()), reflection_ray, world->materials[mat].specular);
-					if (dot(new_ray.dir, new_ray.origin - sphere.pos) < 0) {
-						new_ray.dir = -new_ray.dir;
-					}
-				}
-			}
-
-			if (hit) {
-				float cos_att = -dot(normal, ray.dir); // normal and ray dir have lenght 1
+			if (ray_cast(world, ray, pos, normal, mat)) {
+				float cos_att = -dot(normal, ray.dir); // normal and ray dir have length 1
 				assert(cos_att > 0.0f && cos_att <= 1.0f);
 				if (!bounce) cos_att = 1;
 
-				color = color + mul(attenuation, cos_att * world->materials[mat].emissive);
+				color += mul(attenuation, cos_att * world->materials[mat].emissive);
 				attenuation = mul(attenuation, cos_att * world->materials[mat].color);
-				ray = new_ray;
-				/*
-				// material is very emissive, so other emitters don't matter much.
-				if (length2(world->materials[mat].emissive) > 2.1) {
-					break;
+
+				// update ray
+				vec3 reflection_ray = reflect(ray.dir, normal);
+				ray.origin = pos;
+				ray.dir = lerp(norm(rand_vec()), reflection_ray, world->materials[mat].specular);
+				if (dot(ray.dir, normal) < 0) {
+					ray.dir = -ray.dir;
 				}
-				*/
 			} else {
 				color = color + mul(attenuation, world->materials[mat].emissive);
 				break;
@@ -281,7 +279,7 @@ int main() {
 			ray.origin = camera.pos;
 			ray.dir = norm(filmPosition - camera.pos);
 
-			vec3 color = ray_cast(&world, ray);
+			vec3 color = ray_color(&world, ray);
 
 			img[y * image_width + x] = vec_to_color(color);
         }

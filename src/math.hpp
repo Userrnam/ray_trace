@@ -24,6 +24,18 @@ struct vec3 {
 	bool zero() {
 		return x == 0 && y == 0 && z == 0;
 	}
+
+	void operator+=(vec3 b) {
+		x += b.x;
+		y += b.y;
+		z += b.z;
+	}
+
+	void operator-=(vec3 b) {
+		x -= b.x;
+		y -= b.y;
+		z -= b.z;
+	}
 };
 
 void printl(vec3 v) {
