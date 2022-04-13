@@ -119,3 +119,16 @@ inline vec3 norm(vec3 a) {
 	};
 }
 
+float clamp(float x, float a, float b) {
+	if (x > b)  return b;
+	if (x < a)  return a;
+	return x;
+}
+
+vec3 clamp(vec3 x, vec3 a, vec3 b) {
+	return vec3(
+		clamp(x.x, a.x, b.x),
+		clamp(x.y, a.y, b.y),
+		clamp(x.z, a.z, b.z)
+	);
+}
