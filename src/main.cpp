@@ -2,11 +2,13 @@
 
 #include <stb_image.h>
 #include <vector>
+#include <stdlib.h>
 #include <limits.h>
 
 struct Material {
 	vec3 color;
 	vec3 emissive;
+	float specular; // 1 - very reflective, 0 - not reflective
 };
 
 struct Plane {
@@ -30,16 +32,25 @@ struct World {
 void setup_world(World *world) {
 	world->materials = {
 		Material {
-			.color    = { 0.3f, 0.4f, 0.4f },
-			.emissive = { 0.3f, 0.4f, 0.4f }
+			.color    = { 0.3f, 0.4f, 0.8f },
+			.emissive = { 1.1f, 1.1f, 1.2f },
+			// .emissive = {},
+			.specular = 0.0f
 		},
 		Material {
 			.color = { 0.5f, 0.2f, 0.2f },
-			.emissive = {}
+			.emissive = {},
+			.specular = 0.3f
 		},
 		Material {
 			.color = { 0.1f, 0.2f, 0.8f },
-			.emissive = {}
+			.emissive = {},
+			.specular = 0.9f
+		},
+		Material {
+			.color = { 1.0f, 0.0f, 0.0f },
+			.emissive = {},
+			.specular = 0.0f
 		},
 	};
 
@@ -53,10 +64,15 @@ void setup_world(World *world) {
 
 	world->spheres = {
 		Sphere {
-			.pos = { 0, 0, 1 },
-			.r = 5,
-			.mat_index = 2
-		}
+			.pos = { 0, 0, 2.1 },
+			.r = 2,
+			.mat_index = 0
+		},
+		Sphere {
+			.pos = { 5, 2, 2.1 },
+			.r = 2,
+			.mat_index = 3
+		},
 	};
 }
 
@@ -100,30 +116,104 @@ float intersect_sphere(Sphere sphere, Ray ray) {
 	return result1 > result2 ? result2 : result1;
 }
 
-vec3 ray_cast(World *world, Ray ray) {
-	int mat_index = 0;
-	float min_distance = MAXFLOAT;
+u32 state;
+inline u32 xor_shift_32() {
+	u32 x = state;
+	x ^= x << 13;
+	x ^= x >> 17;
+	x ^= x << 5;
+	state = x;
+	return x;
+}
 
-	// first bounce 
-	for (int bounce = 0; bounce < 2; ++bounce) {
-		for (auto& plane : world->planes) {
-			float distance = intersect_plane(plane, ray);
-			if (distance > 0 && distance < min_distance) {
-				mat_index = plane.mat_index;
-				min_distance = distance;
+vec3 rand_vec() {
+	vec3 res;
+	res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	return res;
+}
+
+vec3 ray_cast(World *world, Ray _ray) {
+	const int bounce_count = 8;
+	const int sample_count = 200;
+
+	vec3 res = {};
+
+	for (int sample = 0; sample < sample_count; ++sample) {
+		Ray ray = _ray;
+		vec3 color = {};
+		vec3 attenuation = { 1, 1, 1 };
+
+		for (int bounce = 0; bounce < bounce_count; ++bounce) {
+			float min_distance = MAXFLOAT;
+			bool hit = false;
+			int mat = 0;
+			vec3 normal = {};
+
+			Ray new_ray;
+			for (auto& plane : world->planes) {
+				float distance = intersect_plane(plane, ray);
+				if (distance > 0 && distance < min_distance) {
+					hit = true;
+					mat = plane.mat_index;
+					min_distance = distance;
+
+					// update ray
+					new_ray.origin = distance * ray.dir + ray.origin;
+					normal = plane.normal;
+
+					vec3 reflection_ray = reflect(ray.dir, plane.normal);
+					new_ray.dir = lerp(norm(rand_vec()), reflection_ray, world->materials[mat].specular);
+					if (dot(new_ray.dir, plane.normal) < 0) {
+						new_ray.dir = -new_ray.dir;
+					}
+				}
+			}
+
+			for (auto& sphere : world->spheres) {
+				float distance = intersect_sphere(sphere, ray);
+				if (distance > 0 && distance < min_distance) {
+					hit = true;
+					mat = sphere.mat_index;
+					min_distance = distance;
+
+					new_ray.origin = distance * ray.dir + ray.origin;
+
+					normal = norm(new_ray.origin - sphere.pos);
+					vec3 reflection_ray = reflect(ray.dir, normal);
+
+					new_ray.dir = lerp(norm(rand_vec()), reflection_ray, world->materials[mat].specular);
+					if (dot(new_ray.dir, new_ray.origin - sphere.pos) < 0) {
+						new_ray.dir = -new_ray.dir;
+					}
+				}
+			}
+
+			if (hit) {
+				float cos_att = -dot(normal, ray.dir); // normal and ray dir have lenght 1
+				assert(cos_att > 0.0f && cos_att <= 1.0f);
+				if (!bounce) cos_att = 1;
+
+				color = color + mul(attenuation, cos_att * world->materials[mat].emissive);
+				attenuation = mul(attenuation, cos_att * world->materials[mat].color);
+				ray = new_ray;
+				/*
+				// material is very emissive, so other emitters don't matter much.
+				if (length2(world->materials[mat].emissive) > 2.1) {
+					break;
+				}
+				*/
+			} else {
+				color = color + mul(attenuation, world->materials[mat].emissive);
+				break;
 			}
 		}
 
-		for (auto& sphere : world->spheres) {
-			float distance = intersect_sphere(sphere, ray);
-			if (distance > 0 && distance < min_distance) {
-				mat_index = sphere.mat_index;
-				min_distance = distance;
-			}
-		}
+		res = res + color;
 	}
 
-	return world->materials[mat_index].color;
+	return 1.0 / float(sample_count) * res;
 }
 
 Color vec_to_color(vec3 v) {
@@ -134,52 +224,70 @@ Color vec_to_color(vec3 v) {
 	};
 }
 
+struct Camera {
+	vec3 pos;
+	vec3 look_at;
+	vec3 dir;
+	vec3 up;
+	vec3 right;
+
+	void update() {
+		dir = norm(pos - look_at);
+		vec3 _up = { 0, 0, 1 };
+		right = cross(_up, dir);
+		up = cross(dir, right);
+	}
+};
+
 int main() {
 	World world;
 	setup_world(&world);
 
+	srand(time(NULL));
+	state = rand();
+
 	s32 image_width  = 720;
 	s32 image_height = 480;
 
-	vec3 camera_pos = { 0, 10, 1 };
-	vec3 look_at = { 0, 0, 0 };
-	vec3 camera_dir = norm(camera_pos - look_at);
+	Camera camera;
+	camera.pos     = { 0, 10, 1 };
+	camera.look_at = { 0, 0, 0 };
+	camera.update();
 
-	vec3 up = { 0, 0, 1 };
-	vec3 camera_right = cross(up, camera_dir);
-	vec3 camera_up = cross(camera_dir, camera_right);
+	float filmDistance = 1.0;
+    vec3 filmCenter = camera.pos - filmDistance * camera.dir;
 
-	float x_scale = 1.0f;
-	float y_scale = float(image_height) / float(image_width);
-	if (image_height > image_width) {
-		x_scale = float(image_width) / float(image_height);
-		y_scale = 1.0f;
-	}
+    float filmWidth = 1.0f * float(image_width) / float(image_height);
+    float filmHeight = 1.0f;
 
-	std::vector<Color> buf;
-	buf.resize(image_width * image_height);
+    float halfFilmWidth = filmWidth * 0.5f;
+    float halfFilmHeight = filmHeight * 0.5f;
 
-	vec3 lens_pos = camera_pos - 0.5 * camera_dir;
+    float pixelWidth = 0.5f / image_width;
+    float pixelHeight = 0.5f / image_height;
 
-	for (int y = 0; y < image_height; ++y) {
-		float fy = 1.0f - float(y) / float(image_height-1) * 2;
-		fy *= y_scale;
-		int pos_in_buffer = y * image_width;
-		for (int x = 0; x < image_width; ++x) {
-			float fx = -1.0f + float(x) / float(image_width-1) * 2;
-			fx *= x_scale;
+	std::vector<Color> img;
+	img.resize(image_width * image_height);
 
-			vec3 global_pos = fx * camera_right + fy * camera_up + lens_pos;
-			Ray ray;
-			ray.dir = norm(global_pos - camera_pos);
-			ray.origin = camera_pos;
+	float max_color = {};
+    for (int32_t y = 0; y < image_height; ++y) {
+        float filmY = ((float) y / (float) image_height) * -2.0f + 1.0f;
+        for (int32_t x = 0; x < image_width; ++x) {
+            float filmX = (((float) x / (float) image_width) * 2.0f - 1.0f);
+
+			vec3 filmPosition = filmCenter + filmX * halfFilmWidth * camera.right  + filmY * halfFilmHeight * camera.up;
+
+			Ray ray = {};
+			ray.origin = camera.pos;
+			ray.dir = norm(filmPosition - camera.pos);
+
 			vec3 color = ray_cast(&world, ray);
 
-			buf[pos_in_buffer + x] = vec_to_color(color);
-		}
-	}
+			img[y * image_width + x] = vec_to_color(color);
+        }
+    }
 
-	stbi_write_png("test.png", image_width, image_height, sizeof(Color), buf.data(), image_width * sizeof(Color));
+	stbi_write_png("test.png", image_width, image_height, sizeof(Color), img.data(), image_width * sizeof(Color));
 
 	return 0;
 }
