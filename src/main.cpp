@@ -1,40 +1,17 @@
-#include "math.hpp"
-
 #include <stb_image.h>
 #include <vector>
 #include <stdlib.h>
 #include <limits.h>
 #include <iostream>
 
-struct Material {
-	vec3 color;
-	vec3 emissive;
-	float specular; // 1 - very reflective, 0 - not reflective
-};
-
-struct Plane {
-	vec3 normal;
-	float d;
-	int mat_index;
-};
-
-struct Sphere {
-	vec3 pos;
-	float r;
-	int mat_index;
-};
-
-struct World {
-	std::vector<Material> materials;
-	std::vector<Plane> planes;
-	std::vector<Sphere> spheres;
-};
+#include "world.hpp"
+#include "ray_trace.hpp"
 
 void setup_world(World *world) {
 	world->materials = {
 		Material {
 			.color    = { 0.3f, 0.4f, 0.8f },
-			.emissive = { 0.4f, 0.4f, 0.8f },
+			.emissive = { 0.5f, 0.6f, 0.8f },
 			.specular = 0.0f
 		},
 		Material {
@@ -49,6 +26,11 @@ void setup_world(World *world) {
 		},
 		Material {
 			.color = { 1.0f, 0.0f, 0.0f },
+			.emissive = {},
+			.specular = 0.0f
+		},
+		Material {
+			.color = { 1.0f, 1.0f, 0.0f },
 			.emissive = {},
 			.specular = 0.0f
 		},
@@ -74,133 +56,22 @@ void setup_world(World *world) {
 			.mat_index = 3
 		},
 	};
-}
 
-struct Ray {
-	vec3 origin;
-	vec3 dir;
-};
+	world->triangle_vertices = {
+		{ 2, 0, 0 },
+		{ 0, 2, 0 },
+		{ 0, 0, 2 },
+	};
+
+	world->triangle_indices = { 0, 1, 2 };
+	world->triangle_materials = { 4 };
+}
 
 struct Color {
 	u8 r;
 	u8 g;
 	u8 b;
 };
-
-const float tolerance = 0.001;
-
-float intersect_plane(Plane plane, Ray ray) {
-	float denom = dot(plane.normal, ray.dir);
-	// ignore if plane normal is pointing in wrong direction
-//	if (denom < -tolerance || denom > tolerance) {
-	if (denom < -tolerance) {
-		return (-dot(plane.normal, ray.origin) - plane.d) / denom;
-	}
-	return -1;
-}
-
-float intersect_sphere(Sphere sphere, Ray ray) {
-	ray.origin = ray.origin - sphere.pos;
-
-	float b_half = dot(ray.dir, ray.origin);
-	float c = dot(ray.origin, ray.origin) - sphere.r * sphere.r;
-	float D = b_half * b_half - c;
-
-	if (D <= tolerance)  return -1;
-
-	return -b_half - sqrt(D);
-}
-
-u32 state;
-inline u32 xor_shift_32() {
-	u32 x = state;
-	x ^= x << 13;
-	x ^= x >> 17;
-	x ^= x << 5;
-	state = x;
-	return x;
-}
-
-vec3 rand_vec() {
-	vec3 res;
-	res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	return res;
-}
-
-bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
-	float min_distance = MAXFLOAT;
-	bool hit = false;
-
-	mat = 0;
-	for (auto& plane : world->planes) {
-		float distance = intersect_plane(plane, ray);
-		if (distance > 0 && distance < min_distance) {
-			hit = true;
-			mat = plane.mat_index;
-			min_distance = distance;
-
-			pos = distance * ray.dir + ray.origin;
-			normal = plane.normal;
-		}
-	}
-
-	for (auto& sphere : world->spheres) {
-		float distance = intersect_sphere(sphere, ray);
-		if (distance > 0 && distance < min_distance) {
-			hit = true;
-			mat = sphere.mat_index;
-			min_distance = distance;
-
-			pos = distance * ray.dir + ray.origin;
-			normal = norm(pos - sphere.pos);
-		}
-	}
-
-	return hit;
-}
-
-vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = true) {
-	if (bounce_count == 0) {
-		return vec3(0, 0, 0);
-	}
-
-	vec3 pos, normal;
-	int mat_index;
-
-	if (ray_cast(world, ray, pos, normal, mat_index)) {
-		float cos_att = -dot(normal, ray.dir); // normal and ray dir have length 1
-		assert(cos_att > 0.0f && cos_att <= 1.0f);
-		if (first_bounce)  cos_att = 1;
-
-		const auto& mat = world->materials[mat_index];
-
-		// update ray
-		vec3 reflection_ray = reflect(ray.dir, normal);
-		ray.origin = pos;
-		ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
-		if (dot(ray.dir, normal) < 0) {
-			ray.dir = -ray.dir;
-		}
-		return mat.emissive + cos_att * mul(mat.color, ray_bounce(world, ray, bounce_count - 1, false));
-	}
-
-	return world->materials[0].emissive;
-}
-
-vec3 ray_color(World *world, Ray ray) {
-	const int bounce_count = 4;
-	const int sample_count = 200;
-
-	vec3 res = {};
-
-	for (int sample = 0; sample < sample_count; ++sample) {
-		res += ray_bounce(world, ray, bounce_count);
-	}
-
-	return 1.0 / float(sample_count) * res;
-}
 
 Color vec_to_color(vec3 v) {
 	return Color {
@@ -229,7 +100,7 @@ int main() {
 	World world;
 	setup_world(&world);
 
-	state = rand();
+	seed(rand());
 
 	s32 image_width  = 720;
 	s32 image_height = 480;
@@ -263,7 +134,7 @@ int main() {
 			ray.origin = camera.pos;
 			ray.dir = norm(film_position - camera.pos);
 
-			vec3 color = ray_color(&world, ray);
+			vec3 color = ray_color(&world, ray, 1000, 5);
 
 			img[y * image_width + x] = vec_to_color(clamp(color, vec3(0,0,0), vec3(1,1,1)));
         }
@@ -273,4 +144,3 @@ int main() {
 
 	return 0;
 }
-
