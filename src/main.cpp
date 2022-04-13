@@ -252,32 +252,29 @@ int main() {
 	camera.look_at = { 0, 0, 0 };
 	camera.update();
 
-	float filmDistance = 1.0;
-    vec3 filmCenter = camera.pos - filmDistance * camera.dir;
+	float film_distance = 1.0;
+    vec3 film_center = camera.pos - film_distance * camera.dir;
 
-    float filmWidth = 1.0f * float(image_width) / float(image_height);
-    float filmHeight = 1.0f;
+    float film_width  = 1.0f * float(image_width) / float(image_height);
+    float film_height = 1.0f;
 
-    float halfFilmWidth = filmWidth * 0.5f;
-    float halfFilmHeight = filmHeight * 0.5f;
-
-    float pixelWidth = 0.5f / image_width;
-    float pixelHeight = 0.5f / image_height;
+    float half_film_width  = film_width * 0.5f;
+    float half_film_height = film_height * 0.5f;
 
 	std::vector<Color> img;
 	img.resize(image_width * image_height);
 
 	float max_color = {};
     for (int32_t y = 0; y < image_height; ++y) {
-        float filmY = ((float) y / (float) image_height) * -2.0f + 1.0f;
+        float film_y = ((float) y / (float) image_height) * -2.0f + 1.0f;       // [-1; 1]
         for (int32_t x = 0; x < image_width; ++x) {
-            float filmX = (((float) x / (float) image_width) * 2.0f - 1.0f);
+            float film_x = (((float) x / (float) image_width) * 2.0f - 1.0f);   // [-1; 1]
 
-			vec3 filmPosition = filmCenter + filmX * halfFilmWidth * camera.right  + filmY * halfFilmHeight * camera.up;
+			vec3 film_position = film_center + film_x * half_film_width * camera.right + film_y * half_film_height * camera.up;
 
 			Ray ray = {};
 			ray.origin = camera.pos;
-			ray.dir = norm(filmPosition - camera.pos);
+			ray.dir = norm(film_position - camera.pos);
 
 			vec3 color = ray_color(&world, ray);
 
