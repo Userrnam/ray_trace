@@ -8,4 +8,5 @@ struct Ray {
 };
 
 void seed(int);
-vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count);
+
+vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count=0, vec3 prev_value={});

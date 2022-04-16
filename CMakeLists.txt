@@ -5,6 +5,8 @@ set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS " -O3")
+add_link_options("-L/usr/local/lib")
+add_link_options( -lsfml-graphics -lsfml-window -lsfml-system)
 include_directories(/usr/local/include)
 add_executable(${PROJECT_NAME}
 	src/stb_impl.cpp

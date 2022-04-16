@@ -1,6 +1,28 @@
 #include "ray_trace.hpp"
 
 
+u32 state;
+inline u32 xor_shift_32() {
+	u32 x = state;
+	x ^= x << 13;
+	x ^= x >> 17;
+	x ^= x << 5;
+	state = x;
+	return x;
+}
+
+vec3 rand_vec() {
+	vec3 res;
+	res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	return res;
+}
+
+void seed(int k) {
+    state = k;
+}
+
 const float tolerance = 0.001;
 
 float intersect_plane(Ray ray, Plane plane) {
@@ -78,24 +100,6 @@ float intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& N) {
 	}
  
     return t;
-}
-
-u32 state;
-inline u32 xor_shift_32() {
-	u32 x = state;
-	x ^= x << 13;
-	x ^= x >> 17;
-	x ^= x << 5;
-	state = x;
-	return x;
-}
-
-vec3 rand_vec() {
-	vec3 res;
-	res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	return res;
 }
 
 bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
@@ -176,16 +180,12 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 	return world->materials[0].emissive;
 }
 
-vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count) {
-	vec3 res = {};
+vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count, vec3 prev_value) {
+	vec3 res = prev_value;
 
 	for (int sample = 0; sample < sample_count; ++sample) {
 		res += ray_bounce(world, ray, bounce_count);
 	}
 
-	return 1.0 / float(sample_count) * res;
-}
-
-void seed(int k) {
-    state = k;
+	return 1.0 / float(sample_count+prev_count) * res;
 }
