@@ -78,10 +78,12 @@ void Application::run() {
 
     int iteration = 0;
 	while(!glfwWindowShouldClose(_window)) {
+		glfwPollEvents();
+        handle_input();
+
         update_image();
 
 		glfwSwapBuffers(_window);
-		glfwPollEvents();
 	}
 
     // stop renderer
@@ -92,6 +94,32 @@ void Application::run() {
 
     destroy_rendering_structures();
 	glfwTerminate();
+}
+
+void Application::handle_input() {
+    float velocity = 0.02;
+    float velocity2 = 0.01;
+    vec3 v = {};
+    float r = 0;
+    if (glfwGetKey(_window, GLFW_KEY_W)) v.y -= velocity;
+    if (glfwGetKey(_window, GLFW_KEY_S)) v.y += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_A)) v.x -= velocity;
+    if (glfwGetKey(_window, GLFW_KEY_D)) v.x += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_LEFT))  r += velocity2;
+    if (glfwGetKey(_window, GLFW_KEY_RIGHT)) r -= velocity2;
+
+    bool updated = false;
+    if (v.x != 0 || v.y != 0) {
+        _camera.move(v);
+        updated = true;
+    }
+    if (r) {
+        _camera.rotate_z(r);
+        updated = true;
+    }
+    if (updated) {
+        _renderer->set_camera(_camera);
+    }
 }
 
 void Application::window_resized(int width, int height) {
