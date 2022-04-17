@@ -76,6 +76,8 @@ void Application::run() {
         render_pass(iteration++, sums);
         update_image();
 
+        std::cout << "Samples: " << samples * iteration << std::endl;
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -94,7 +96,6 @@ void Application::setup_raytracing() {
 }
 
 void Application::render_pass(int iteration, std::vector<vec3>& sums) {
-    int samples = 5;
 	float max_color = {};
     for (int32_t y = 0; y < _height; ++y) {
         float v = ((float) y / (float) _height) * 2.0f - 1.0f;     // [-1; 1]

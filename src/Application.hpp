@@ -12,6 +12,7 @@ struct Application {
 	GLFWwindow *window = nullptr;
     World *_world = nullptr;
     Camera _camera;
+    int samples = 5;
 
     // image size is equal to window size
     std::vector<vec3> _image;

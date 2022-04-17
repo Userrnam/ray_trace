@@ -162,7 +162,8 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 
 	if (ray_cast(world, ray, pos, normal, mat_index)) {
 		float cos_att = -dot(normal, ray.dir); // normal and ray dir have length 1
-		assert(cos_att > 0.0f && cos_att <= 1.0f);
+		// cos_att may be less then 0 or grater than 1 due to floating point error
+		cos_att = clamp(cos_att, 0, 1);
 		if (first_bounce)  cos_att = 1;
 
 		const auto& mat = world->materials[mat_index];
