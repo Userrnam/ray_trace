@@ -180,12 +180,14 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 	return world->materials[0].emissive;
 }
 
-vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count, vec3 prev_value) {
-	vec3 res = prev_value;
-
+vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count, vec3 *sum) {
+	vec3 res = {};
+	if (sum == nullptr) {
+		sum = &res;
+	}
 	for (int sample = 0; sample < sample_count; ++sample) {
-		res += ray_bounce(world, ray, bounce_count);
+		*sum += ray_bounce(world, ray, bounce_count);
 	}
 
-	return 1.0 / float(sample_count+prev_count) * res;
+	return 1.0 / float(sample_count+prev_count) * *sum;
 }

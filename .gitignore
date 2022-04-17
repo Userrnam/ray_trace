@@ -2,3 +2,4 @@
 .vscode
 .cquery
 build
+.DS_Store
