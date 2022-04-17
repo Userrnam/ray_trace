@@ -19,12 +19,7 @@ void error() {
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     auto app = (Application *)glfwGetWindowUserPointer(window);
-    app->_width = width;
-    app->_height = height;
-
-    int w, h;
-    glfwGetFramebufferSize(window, &w, &h);
-    glViewport(0, 0, w, h);
+    app->window_resized(width, height);
 }
 
 bool Application::init(int width, int height) {
@@ -37,16 +32,16 @@ bool Application::init(int width, int height) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
+    _window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
 
-    if (window == NULL) {
+    if (_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return false;
     }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetWindowUserPointer(window, this);
+    glfwMakeContextCurrent(_window);
+    glfwSetFramebufferSizeCallback(_window, framebuffer_size_callback);
+    glfwSetWindowUserPointer(_window, this);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -54,67 +49,69 @@ bool Application::init(int width, int height) {
     }
 
     int w, h;
-    glfwGetFramebufferSize(window, &w, &h);
+    glfwGetFramebufferSize(_window, &w, &h);
     glViewport(0, 0, w, h);
 
     create_rendering_structures();
-    setup_raytracing();
+
+    // create renderer
+    // FIXME: move camera from here!
+	_camera.create(_width, _height, { 0, 10, 1}, { 3, 0, 0 }, 1);
+    _renderer = new Renderer;
+    _renderer->set_camera(_camera);
 
     return true;
 }
 
 void Application::set_world(World *world) {
     _world = world;
+
+    assert(_renderer);
+    _renderer->set_world(_world);
 }
 
 void Application::run() {
     std::vector<vec3> sums;
     sums.resize(_width * _height, {});
 
+    _renderer_thread = new std::thread(&Renderer::run, _renderer);
+
     int iteration = 0;
-	while(!glfwWindowShouldClose(window)) {
-        render_pass(iteration++, sums);
+	while(!glfwWindowShouldClose(_window)) {
         update_image();
 
-        std::cout << "Samples: " << samples * iteration << std::endl;
-
-		glfwSwapBuffers(window);
+		glfwSwapBuffers(_window);
 		glfwPollEvents();
 	}
+
+    // stop renderer
+    _renderer->stop();
+    _renderer_thread->join();
+    delete _renderer_thread;
+    delete _renderer;
+
     destroy_rendering_structures();
 	glfwTerminate();
 }
 
-void Application::setup_raytracing() {
-    _image.resize(_width * _height);
+void Application::window_resized(int width, int height) {
+    _width = width;
+    _height = height;
 
-    for (int i = 0; i < _width * _height; ++i) {
-        _image[i] = vec3(1, 1, 1);
-    }
+    int w, h;
+    glfwGetFramebufferSize(_window, &w, &h);
+    glViewport(0, 0, w, h);
 
+    // update width and size
 	_camera.create(_width, _height, { 0, 10, 1}, { 3, 0, 0 }, 1);
-}
-
-void Application::render_pass(int iteration, std::vector<vec3>& sums) {
-	float max_color = {};
-    for (int32_t y = 0; y < _height; ++y) {
-        float v = ((float) y / (float) _height) * 2.0f - 1.0f;     // [-1; 1]
-        for (int32_t x = 0; x < _width; ++x) {
-            float u = ((float) x / (float) _width) * 2.0f - 1.0f;   // [-1; 1]
-
-			Ray ray = _camera.get_ray(u, v);
-
-			vec3 color = ray_color(_world, ray, samples, 3, samples * iteration, &sums[y * _width + x]);
-
-			_image[y * _width + x] = color;
-        }
-    }
+    _renderer->set_camera(_camera);
 }
 
 struct Color {
 	u8 r;
 	u8 g;
 	u8 b;
+	u8 a;
 };
 
 Color vec_to_color(vec3 v) {
@@ -122,26 +119,33 @@ Color vec_to_color(vec3 v) {
 		u8(255 * v.x),
 		u8(255 * v.y),
 		u8(255 * v.z),
+		u8(255),
 	};
 }
 
 void Application::update_image() {
+    auto image = _renderer->get_rendered_image();
+
     // load texture
 	std::vector<Color> buffer;
-	buffer.resize(_width * _height);
-	for (int i = 0; i < _image.size(); ++i) {
-		buffer[i] = vec_to_color(clamp(_image[i], vec3(0,0,0), vec3(1,1,1)));
-	}
+	buffer.resize(_width * _height, {});
+    if (image.size() == buffer.size()) {
+        for (int i = 0; i < image.size(); ++i) {
+            buffer[i] = vec_to_color(clamp(image[i], vec3(0,0,0), vec3(1,1,1)));
+        }
+    }
+    _renderer->release_rendered_image();
 
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
+    // copy image to texture.
+    glBindTexture(GL_TEXTURE_2D, _texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _width, _height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
     // for some reason it does not work without mipmaps
     glGenerateMipmap(GL_TEXTURE_2D);
 
     // draw image
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUseProgram(shader);
-    glBindVertexArray(VAO);
+    glBindTexture(GL_TEXTURE_2D, _texture);
+    glUseProgram(_shader);
+    glBindVertexArray(_VAO);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
     error();
@@ -156,11 +160,11 @@ void Application::create_rendering_structures() {
     };
 
     // create buffer and vertex array
-    glGenBuffers(1, &VBO);
-    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &_VBO);
+    glGenVertexArrays(1, &_VAO);
 
-    glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindVertexArray(_VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, _VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
@@ -169,7 +173,7 @@ void Application::create_rendering_structures() {
     create_shader_program();
 
     // create and bind texture
-    glGenTextures(1, &texture);
+    glGenTextures(1, &_texture);
 }
 
 void Application::create_shader_program() {
@@ -190,8 +194,6 @@ void Application::create_shader_program() {
         "void main() {\n"
         "   FragColor = texture(image, tex_coord);\n"
         "}\n\0";
-
-    // not checking for errors, because we know shaders are correct and don't use fancy features
 
     unsigned int vertex_shader;
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -215,13 +217,13 @@ void Application::create_shader_program() {
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
-    shader = glCreateProgram();
-    glAttachShader(shader, vertex_shader);
-    glAttachShader(shader, fragment_shader);
-    glLinkProgram(shader);
-    glGetProgramiv(shader, GL_LINK_STATUS, &success);
+    _shader = glCreateProgram();
+    glAttachShader(_shader, vertex_shader);
+    glAttachShader(_shader, fragment_shader);
+    glLinkProgram(_shader);
+    glGetProgramiv(_shader, GL_LINK_STATUS, &success);
     if(!success) {
-        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        glGetShaderInfoLog(_shader, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
@@ -230,8 +232,8 @@ void Application::create_shader_program() {
 }
 
 void Application::destroy_rendering_structures() {
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteTextures(1, &texture);
-    glDeleteProgram(shader);
+    glDeleteBuffers(1, &_VBO);
+    glDeleteVertexArrays(1, &_VAO);
+    glDeleteTextures(1, &_texture);
+    glDeleteProgram(_shader);
 }

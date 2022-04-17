@@ -8,9 +8,12 @@ class Camera {
 	vec3 _center;
 	vec3 _vertical;
 	vec3 _horizontal;
-	float _width, _height;
+	int _width, _height;
 public:
-	void create(float width, float height, vec3 pos, vec3 look_at, float lense_distance) {
+	int get_width()  { return _width; }
+	int get_height() { return _height; }
+
+	void create(int width, int height, vec3 pos, vec3 look_at, float lense_distance) {
 		_pos = pos;
 		_dir = norm(_pos - look_at);
 		vec3 _up = { 0, 0, 1 };
@@ -19,7 +22,7 @@ public:
 
 		_center = _pos - lense_distance * _dir;
 		_vertical   = 0.5 * up;
-		_horizontal = 0.5 * (width / height) * right;
+		_horizontal = 0.5 * (float(width) / height) * right;
 
 		_width = width;
 		_height = height;
