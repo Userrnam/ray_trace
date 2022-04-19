@@ -9,8 +9,7 @@ void setup_world(World *world) {
 	world->materials = {
 		Material {
 			.color    = { 0.3f, 0.4f, 0.8f },
-			// .emissive = { 0.5f, 0.6f, 0.8f },
-			.emissive = {},
+			.emissive = { 0.5f, 0.6f, 0.8f },
 			.specular = 0.0f
 		},
 		Material {
@@ -24,14 +23,17 @@ void setup_world(World *world) {
 			.specular = 0.9f
 		},
 		Material {
-			.color = { 1.0f, 0.0f, 0.0f },
+			// .color = { 1.0f, 0.0f, 0.0f },
+			.color = { 1.0f, 1.0f, 1.0f },
 			.emissive = {},
-			.specular = 0.0f
+			.specular = 1.0f,
+			.refractiveness = 1.0f,
+			.n = 1.5
 		},
 		Material {
 			.color = { 1.0f, 1.0f, 0.0f },
-			.emissive = { 6, 6, 0},
-			.specular = 0.0f
+			// .emissive = { 6, 6, 0},
+			.specular = 1.0f
 		},
 	};
 
@@ -57,15 +59,15 @@ void setup_world(World *world) {
 	};
 
 	world->triangle_vertices = {
-		// { 2, 2, 0 },
-		// { 0, 4, 0 },
-		// { 0, 2, 2 },
-		{ -5, 4, 5 },
-		{ 5, -5, 5 },
-		{ 5, 4, 5 },
+		{ 2, 2, 0 },
+		{ 0, 4, 0 },
+		{ 0, 2, 2 },
+		// { -5, 4, 5 },
+		// { 5, -5, 5 },
+		// { 5, 4, 5 },
 	};
 
-	world->triangle_indices = { 0, 2, 1 };
+	world->triangle_indices = { 0, 1, 2 };
 	world->triangle_materials = { 4, 4 };
 }
 

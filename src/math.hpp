@@ -96,6 +96,14 @@ vec3 reflect(vec3 v, vec3 n) {
 }
 
 inline
+vec3 refract(vec3 ray_dir, vec3 normal, float etai_over_etat) {
+    auto cos_theta = fmin(dot(-ray_dir, normal), 1.0);
+    vec3 r_out_perp =  etai_over_etat * (ray_dir + cos_theta*normal);
+    vec3 r_out_parallel = -sqrt(fabs(1.0 - dot(r_out_perp, r_out_perp))) * normal;
+    return r_out_perp + r_out_parallel;
+}
+
+inline
 vec3 lerp(vec3 a, vec3 b, float value) {
 	return (1.0f - value) * a + value * b;
 }

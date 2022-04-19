@@ -19,6 +19,18 @@ vec3 rand_vec() {
 	return res;
 }
 
+// returns 1 with probability p
+bool probability_value(float p) {
+	return p > float(xor_shift_32() % 10000) / 10000;
+}
+
+float reflectance(float cosine, float ref_idx) {
+	// Use Schlick's approximation for reflectance.
+	auto r0 = (1-ref_idx) / (1+ref_idx);
+	r0 = r0*r0;
+	return r0 + (1-r0)*pow((1 - cosine),5);
+}
+
 void seed(int k) {
     state = k;
 }
@@ -86,11 +98,12 @@ float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const v
     return dot(e2, qvec) * inv_det;
 }
 
-bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
+bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hit_from_inside) {
 	float min_distance = MAXFLOAT;
 	bool hit = false;
 
 	mat = 0;
+	hit_from_inside = false;
 	for (auto& plane : world->planes) {
 		float distance = intersect_plane(ray, plane);
 		if (distance > 0 && distance < min_distance) {
@@ -100,13 +113,16 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
 
 			pos = distance * ray.dir + ray.origin;
 			normal = plane.normal;
+			hit_from_inside = false;
 		}
 	}
 
 	for (auto& sphere : world->spheres) {
 		bool inside;
 		float distance = intersect_sphere(ray, sphere, inside);
-		if (!inside && distance > 0 && distance < min_distance) {
+		if (distance > 0 && distance < min_distance) {
+			hit_from_inside = inside;
+
 			hit = true;
 			mat = sphere.mat_index;
 			min_distance = distance;
@@ -128,9 +144,12 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
 			world->triangle_vertices[world->triangle_indices[i+0]] - world->triangle_vertices[world->triangle_indices[i+2]]
 		);
 
+		bool inside = false;
+
 		// triangle normal is looking in wrong direction.
 		if (dot(N, ray.dir) > 0) {
-			N = -N;
+			inside = true;
+			// N = -N;
 			// without this noise will appear
 			distance -= tolerance;
 		}
@@ -142,6 +161,7 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
 
 			pos = distance * ray.dir + ray.origin;
 			normal = N;
+			hit_from_inside = inside;
 		}
 	}
 
@@ -157,22 +177,46 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 
 	vec3 pos, normal;
 	int mat_index;
+	bool hit_from_inside;
 
-	if (ray_cast(world, ray, pos, normal, mat_index)) {
-		float cos_att = -dot(normal, ray.dir); // normal and ray dir have length 1
-		// cos_att may be less then 0 or grater than 1 due to floating point error
-		cos_att = clamp(cos_att, 0, 1);
-		if (first_bounce)  cos_att = 1;
-
+	if (ray_cast(world, ray, pos, normal, mat_index, hit_from_inside)) {
 		const auto& mat = world->materials[mat_index];
 
-		// update ray
-		vec3 reflection_ray = reflect(ray.dir, normal);
 		ray.origin = pos;
-		ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
-		if (dot(ray.dir, normal) < 0) {
-			ray.dir = -ray.dir;
+
+		float cos_theta = -dot(normal, ray.dir); // normal and ray dir have length 1
+		float cos_att = 1; 
+		if (hit_from_inside) {
+			if (mat.refractiveness == 0) {
+				return {};
+			}
+            float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+			float refraction_ratio = mat.n;
+			if (refraction_ratio * sin_theta > 1.0 || probability_value(reflectance(cos_theta, refraction_ratio))) {
+				ray.dir = reflect(ray.dir, normal);
+			} else {
+				ray.dir = refract(ray.dir, normal, refraction_ratio);
+			}
+		} else if (mat.refractiveness > 0) {
+            float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+			float refraction_ratio = 1.0f / mat.n;
+			if (refraction_ratio * sin_theta > 1.0 || probability_value(reflectance(cos_theta, refraction_ratio))) {
+				ray.dir = reflect(ray.dir, normal);
+			} else {
+				ray.dir = refract(ray.dir, normal, refraction_ratio);
+			}
+		} else {
+			cos_att = clamp(cos_theta, 0, 1);
+			if (first_bounce)  cos_att = 1;
+
+			// update ray
+			vec3 reflection_ray = reflect(ray.dir, normal);
+			ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
+			if (dot(ray.dir, normal) < 0) {
+				ray.dir = -ray.dir;
+			}
 		}
+
 		return mat.emissive + cos_att * mul(mat.color, ray_bounce(world, ray, bounce_count - 1, false));
 	}
 

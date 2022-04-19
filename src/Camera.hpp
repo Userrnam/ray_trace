@@ -22,6 +22,7 @@ public:
 		vec3 right = cross(_up, _dir);
 		_pos += d.x * right;
 		_pos += d.y * _dir;
+		_pos.z += d.z;
 
 		_center = _pos - _lense_distance * _dir;
 	}

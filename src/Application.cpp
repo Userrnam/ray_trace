@@ -102,6 +102,8 @@ void Application::handle_input() {
     if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS) v.y += velocity;
     if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS) v.x -= velocity;
     if (glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS) v.x += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_SPACE) == GLFW_PRESS) v.z += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) v.z -= velocity;
     if (glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_PRESS)  r += velocity2;
     if (glfwGetKey(_window, GLFW_KEY_RIGHT) == GLFW_PRESS) r -= velocity2;
 
@@ -110,7 +112,7 @@ void Application::handle_input() {
     }
 
     bool updated = false;
-    if (v.x != 0 || v.y != 0) {
+    if (v.x != 0 || v.y != 0 || v.z != 0) {
         _camera.move(v);
         std::cout << "pos: " << _camera.get_position() << std::endl;
         std::cout << "dir: " << _camera.get_direction() << std::endl;
