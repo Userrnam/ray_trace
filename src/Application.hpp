@@ -5,8 +5,8 @@
 #include <vector>
 #include <thread>
 
-#include "world.hpp"
-#include "math.hpp"
+#include "World.hpp"
+#include "Math.hpp"
 #include "Camera.hpp"
 #include "Renderer.hpp"
 

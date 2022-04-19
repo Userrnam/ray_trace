@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stb_image.h>
 
-#include "ray_trace.hpp"
+#include "Ray_Trace.hpp"
 
 void error() {
     GLenum err;

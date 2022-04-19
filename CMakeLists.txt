@@ -10,7 +10,7 @@ add_link_options( -lglfw)
 include_directories(/usr/local/include)
 add_executable(${PROJECT_NAME}
 	src/stb_impl.cpp
-	src/ray_trace.cpp
+	src/Ray_Trace.cpp
 	src/glad.cpp
 	src/Application.cpp
 	src/main.cpp

@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 
-#include "ray_trace.hpp"
+#include "Ray_Trace.hpp"
 
 void Renderer::set_world(World *world) {
     _world = world;

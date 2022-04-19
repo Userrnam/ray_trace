@@ -1,6 +1,6 @@
 #pragma once
 
-#include "world.hpp"
+#include "World.hpp"
 #include "Camera.hpp"
 
 #include <mutex>

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "math.hpp"
+#include "Math.hpp"
 
 struct Material {
 	vec3 color = {};

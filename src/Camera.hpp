@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ray_trace.hpp"
+#include "Ray_Trace.hpp"
 
 class Camera {
 	vec3 _pos;
