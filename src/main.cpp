@@ -13,7 +13,7 @@ void setup_world(World *world) {
 			.specular = 0.0f
 		},
 		Material {
-			.color = { 0.5f, 0.2f, 0.2f },
+			.color = { 0.9f, 0.9f, 0.2f },
 			.emissive = {},
 			.specular = 0.3f
 		},
@@ -43,30 +43,26 @@ void setup_world(World *world) {
 	};
 
 	world->spheres = {
-		Sphere {
-			.pos = { 0, 0, 2.1 },
-			.r = 2,
-			.mat_index = 2
-		},
-		Sphere {
-			.pos = { 5, 2, 2.1 },
-			.r = 2,
-			.mat_index = 3
-		},
+		// Sphere {
+		// 	.pos = { 5, 2, 2 },
+		// 	.r = 2,
+		// 	.mat_index = 3
+		// },
+	// 	Sphere {
+	// 		.pos = { 0, 0, 2.1 },
+	// 		.r = 2,
+	// 		.mat_index = 2
+	// 	},
 	};
 
 	world->triangle_vertices = {
 		{ 2, 2, 0 },
 		{ 0, 4, 0 },
 		{ 0, 2, 2 },
-
-		// { -10, 8,  0 },
-		// { 10,  8,  0 },
-		// { 5,   8,  5 },
 	};
 
-	world->triangle_indices = { 0, 1, 2 };
-	world->triangle_materials = { 4 };
+	world->triangle_indices = { 0, 2, 1 };
+	world->triangle_materials = { 4, 4 };
 }
 
 int main() {

@@ -56,7 +56,7 @@ bool Application::init(int width, int height) {
 
     // create renderer
     // FIXME: move camera from here!
-    _camera.create2(_width, _height, { 0, 10, 2 }, { 0, 1, 0 }, 1);
+    _camera.create2(_width, _height, { 5, 2, 2 }, { 1, 0, 0 }, 1);
     _renderer = new Renderer;
     _renderer->set_camera(_camera);
 
@@ -93,8 +93,9 @@ void Application::run() {
 }
 
 void Application::handle_input() {
-    float velocity = 0.02;
-    float velocity2 = 0.01;
+    // FIXME
+    float velocity = 0.08;
+    float velocity2 = 0.04;
     vec3 v = {};
     float r = 0;
     if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS) v.y -= velocity;

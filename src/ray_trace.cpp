@@ -25,7 +25,7 @@ void seed(int k) {
 
 const float tolerance = 0.001;
 
-float intersect_plane(Ray ray, Plane plane) {
+float intersect_plane(const Ray& ray, const Plane& plane) {
 	float denom = dot(plane.normal, ray.dir);
 	// ignore if plane normal is pointing in wrong direction
 //	if (denom < -tolerance || denom > tolerance) {
@@ -35,67 +35,55 @@ float intersect_plane(Ray ray, Plane plane) {
 	return -1;
 }
 
-float intersect_sphere(Ray ray, Sphere sphere) {
-	ray.origin = ray.origin - sphere.pos;
+float intersect_sphere(const Ray& ray, const Sphere& sphere, bool& inside) {
+	vec3 a = ray.origin - sphere.pos;
 
-	float b_half = dot(ray.dir, ray.origin);
-	float c = dot(ray.origin, ray.origin) - sphere.r * sphere.r;
+	// if ray is inside sphere b_half is < 0
+	float b_half = dot(ray.dir, a);
+	float c = dot(a, a) - sphere.r * sphere.r;
 	float D = b_half * b_half - c;
 
 	if (D <= tolerance)  return -1;
 
-	return -b_half - sqrt(D);
+	float rD = sqrt(D);
+	float t = -b_half - sqrt(D);
+
+	// ray is inside sphere. This can happen in refraction
+	if (t < 0) {
+		inside = true;
+		return -b_half + sqrt(D);
+	}
+	inside = false;
+	return t;
 }
 
-// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
-float intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& N) {
-	// compute plane's normal
-    vec3 v0v1 = v1 - v0; 
-    vec3 v0v2 = v2 - v0; 
+// https://ru.wikipedia.org/wiki/Алгоритм_Моллера_—_Трумбора
+float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const vec3& v2) {
+    vec3 e1 = v1 - v0;
+    vec3 e2 = v2 - v0;
 
-    // no need to normalize
-    N = cross(v0v1, v0v2);
- 
-    // Step 1: finding P
- 
-    // check if ray and plane are parallel and ignore if normal is pointing in wrong direction
-    float n_dot_dir = dot(N, ray.dir);
-    if (-n_dot_dir < tolerance) {
+	// calculate triple product of e1, e2 and ray.dir
+    vec3 pvec = cross(ray.dir, e2);
+    float det = dot(e1, pvec);
+
+	// ray and plane are parallel
+    if (det < tolerance && det > -tolerance) {
         return -1;
-	}
- 
-    float d = -dot(N, v0);
-    float t = -(dot(N, ray.origin) + d) / n_dot_dir; 
- 
-    // check if the triangle is in behind the ray
-    if (t < 0)  return t;
- 
-    // compute the intersection point
-    vec3 P = ray.origin + t * ray.dir; 
- 
-    vec3 C; // vector perpendicular to triangle's plane 
- 
-    // edge 0
-    vec3 edge0 = v1 - v0;
-    vec3 vp0 = P - v0;
-    C = cross(edge0, vp0);
-    if (dot(N, C) < 0) return -1;
- 
-    // edge 1
-    vec3 edge1 = v2 - v1;
-    vec3 vp1 = P - v1;
-    C = cross(edge1, vp1);
-    if (dot(N, C) < 0) return -1;
- 
-    // edge 2
-    vec3 edge2 = v0 - v2; 
-    vec3 vp2 = P - v2; 
-    C = cross(edge2, vp2);
-    if (dot(N, C) < 0) return -1;
+    }
 
-	N = norm(N);
- 
-    return t;
+    float inv_det = 1 / det;
+    vec3 tvec = ray.origin - v0;
+    float u = dot(tvec, pvec) * inv_det;
+    if (u < 0 || u > 1) {
+        return -1;
+    }
+
+    vec3 qvec = cross(tvec, e1);
+    float v = dot(ray.dir, qvec) * inv_det;
+    if (v < 0 || u + v > 1) {
+        return -1;
+    }
+    return dot(e2, qvec) * inv_det;
 }
 
 bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
@@ -116,34 +104,47 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
 	}
 
 	for (auto& sphere : world->spheres) {
-		float distance = intersect_sphere(ray, sphere);
-		if (distance > 0 && distance < min_distance) {
+		bool inside;
+		float distance = intersect_sphere(ray, sphere, inside);
+		if (!inside && distance > 0 && distance < min_distance) {
 			hit = true;
 			mat = sphere.mat_index;
 			min_distance = distance;
 
 			pos = distance * ray.dir + ray.origin;
-			normal = norm(pos - sphere.pos);
+			normal = pos - sphere.pos;
 		}
 	}
 
 	for (int i = 0; i < world->triangle_indices.size(); i += 3) {
-		vec3 N;
 		float distance = intersect_triangle(ray,
 			world->triangle_vertices[world->triangle_indices[i+0]],
 			world->triangle_vertices[world->triangle_indices[i+1]],
-			world->triangle_vertices[world->triangle_indices[i+2]],
-			N
+			world->triangle_vertices[world->triangle_indices[i+2]]
 		);
+
+		vec3 N = cross(
+			world->triangle_vertices[world->triangle_indices[i+0]] - world->triangle_vertices[world->triangle_indices[i+1]],
+			world->triangle_vertices[world->triangle_indices[i+0]] - world->triangle_vertices[world->triangle_indices[i+2]]
+		);
+
+		// triangle normal is looking in wrong direction.
+		if (dot(N, ray.dir) > 0) {
+			N = -N;
+			// without this noise will appear
+			distance -= tolerance;
+		}
 		if (distance > 0 && distance < min_distance) {
 			hit = true;
-			mat = world->triangle_materials[i / 3];;
+			mat = world->triangle_materials[i / 3];
 			min_distance = distance;
 
 			pos = distance * ray.dir + ray.origin;
 			normal = N;
 		}
 	}
+
+	normal = norm(normal);
 
 	return hit;
 }
@@ -177,7 +178,7 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 	return world->materials[0].emissive;
 }
 
-vec3 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count, vec3 *sum) {
+vec3 ray_color(World *world, const Ray& ray, int sample_count, int bounce_count, int prev_count, vec3 *sum) {
 	vec3 res = {};
 	if (sum == nullptr) {
 		sum = &res;
