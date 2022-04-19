@@ -7,8 +7,10 @@ void Renderer::set_world(World *world) {
 }
 
 void Renderer::set_camera(Camera camera) {
+    _camera_update_mutex.lock();
     _camera = camera;
     _restart = true;
+    _camera_update_mutex.unlock();
 }
 
 void Renderer::run() {
@@ -19,18 +21,15 @@ void Renderer::run() {
         Ray ray;
         vec3 color;
         for (int32_t y = 0; y < _camera.get_height(); ++y) {
-            float v = ((float) y / (float) _camera.get_height()) * 2.0f - 1.0f;      // [-1; 1]
             for (int32_t x = 0; x < _camera.get_width(); ++x) {
-                float u = ((float) x / (float) _camera.get_width()) * 2.0f - 1.0f;   // [-1; 1]
 
                 if (_restart) {
-                    _restart = false;
                     goto restart;
                 }
 
-                ray = _camera.get_ray(u, v);
+                ray = _camera.get_ray(x, y);
 
-                color = ray_color(_world, ray, _samples, 3, _samples * iteration, &_sums[y * _camera.get_width() + x]);
+                color = ray_color(_world, ray, _samples, 5, _samples * iteration, &_sums[y * _camera.get_width() + x]);
 
                 _image[y * _camera.get_width() + x] = color;
             }
@@ -42,11 +41,16 @@ void Renderer::run() {
         _rendered_image_mutex.unlock();
         continue;
 restart:
+        _camera_update_mutex.lock();
+        _rendered_image.clear();
         _rendered_image.resize(_camera.get_width() * _camera.get_height());
+        _image.clear();
         _image.resize(_camera.get_width() * _camera.get_height());
         _sums.clear();
         _sums.resize(_camera.get_width() * _camera.get_height(), {});
         iteration = 0;
+        _restart = false;
+        _camera_update_mutex.unlock();
     }
 }
 

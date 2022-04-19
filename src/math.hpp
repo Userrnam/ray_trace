@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
+#include <iostream>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -137,4 +138,10 @@ vec3 clamp(vec3 x, vec3 a, vec3 b) {
 		clamp(x.y, a.y, b.y),
 		clamp(x.z, a.z, b.z)
 	);
+}
+
+inline
+std::ostream& operator<<(std::ostream& os, vec3 v) {
+	os << "[ " << v.x << ", " << v.y << ", " << v.z << " ]";
+	return os;
 }

@@ -56,7 +56,7 @@ bool Application::init(int width, int height) {
 
     // create renderer
     // FIXME: move camera from here!
-	_camera.create(_width, _height, { 0, 10, 1}, { 3, 0, 0 }, 1);
+    _camera.create2(_width, _height, { 0, 10, 2 }, { 0, 1, 0 }, 1);
     _renderer = new Renderer;
     _renderer->set_camera(_camera);
 
@@ -71,12 +71,8 @@ void Application::set_world(World *world) {
 }
 
 void Application::run() {
-    std::vector<vec3> sums;
-    sums.resize(_width * _height, {});
-
     _renderer_thread = new std::thread(&Renderer::run, _renderer);
 
-    int iteration = 0;
 	while(!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
         handle_input();
@@ -101,16 +97,22 @@ void Application::handle_input() {
     float velocity2 = 0.01;
     vec3 v = {};
     float r = 0;
-    if (glfwGetKey(_window, GLFW_KEY_W)) v.y -= velocity;
-    if (glfwGetKey(_window, GLFW_KEY_S)) v.y += velocity;
-    if (glfwGetKey(_window, GLFW_KEY_A)) v.x -= velocity;
-    if (glfwGetKey(_window, GLFW_KEY_D)) v.x += velocity;
-    if (glfwGetKey(_window, GLFW_KEY_LEFT))  r += velocity2;
-    if (glfwGetKey(_window, GLFW_KEY_RIGHT)) r -= velocity2;
+    if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS) v.y -= velocity;
+    if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS) v.y += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS) v.x -= velocity;
+    if (glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS) v.x += velocity;
+    if (glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_PRESS)  r += velocity2;
+    if (glfwGetKey(_window, GLFW_KEY_RIGHT) == GLFW_PRESS) r -= velocity2;
+
+    if (glfwGetKey(_window, GLFW_KEY_R) == GLFW_PRESS) {
+        _renderer->set_camera(_camera);
+    }
 
     bool updated = false;
     if (v.x != 0 || v.y != 0) {
         _camera.move(v);
+        std::cout << "pos: " << _camera.get_position() << std::endl;
+        std::cout << "dir: " << _camera.get_direction() << std::endl;
         updated = true;
     }
     if (r) {

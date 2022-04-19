@@ -59,6 +59,10 @@ void setup_world(World *world) {
 		{ 2, 2, 0 },
 		{ 0, 4, 0 },
 		{ 0, 2, 2 },
+
+		// { -10, 8,  0 },
+		// { 10,  8,  0 },
+		// { 5,   8,  5 },
 	};
 
 	world->triangle_indices = { 0, 1, 2 };

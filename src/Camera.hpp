@@ -14,6 +14,9 @@ public:
 	int get_width()  { return _width; }
 	int get_height() { return _height; }
 
+	vec3 get_position() { return _pos; }
+	vec3 get_direction() { return _dir; }
+
 	void move(vec3 d) {
 		vec3 _up = { 0, 0, 1 };
 		vec3 right = cross(_up, _dir);
@@ -36,10 +39,10 @@ public:
 		_horizontal = 0.5 * (float(_width) / _height) * right;
 	}
 
-	void create(int width, int height, vec3 pos, vec3 look_at, float lense_distance) {
+	void create2(int width, int height, vec3 pos, vec3 dir, float lense_distance) {
+		_dir = dir;
 		_lense_distance = lense_distance;
 		_pos = pos;
-		_dir = norm(_pos - look_at);
 		vec3 _up = { 0, 0, 1 };
 		vec3 right = cross(_up, _dir);
 		vec3 up = cross(_dir, right);
@@ -52,9 +55,17 @@ public:
 		_height = height;
 	}
 
-	Ray get_ray(float u, float v) {
-		u += 1.0/_width * float(rand()) / RAND_MAX;
-		v += 1.0/_height * float(rand()) / RAND_MAX;
+	void create(int width, int height, vec3 pos, vec3 look_at, float lense_distance) {
+		_dir = norm(pos - look_at);
+
+		create2(width, height, pos, _dir, lense_distance);
+	}
+
+	Ray get_ray(int x, int y) {
+		float v = ((float) y / (float) _height) * 2.0f - 1.0f;  // [-1; 1]
+		float u = ((float) x / (float) _width) * 2.0f - 1.0f;   // [-1; 1]
+		u += 0.5/_width * float(rand()) / RAND_MAX;
+		v += 0.5/_height * float(rand()) / RAND_MAX;
 
 		Ray rey;
 		rey.origin = _pos;

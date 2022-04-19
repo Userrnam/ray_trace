@@ -58,9 +58,9 @@ float intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& N) {
  
     // Step 1: finding P
  
-    // check if ray and plane are parallel
+    // check if ray and plane are parallel and ignore if normal is pointing in wrong direction
     float n_dot_dir = dot(N, ray.dir);
-    if (fabs(n_dot_dir) < tolerance) {
+    if (-n_dot_dir < tolerance) {
         return -1;
 	}
  
@@ -94,10 +94,6 @@ float intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, vec3& N) {
     if (dot(N, C) < 0) return -1;
 
 	N = norm(N);
-
-	if (n_dot_dir > 0) {
-		N = -N;
-	}
  
     return t;
 }

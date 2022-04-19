@@ -14,6 +14,7 @@ class Renderer {
     bool _stop = false;
     bool _restart = false;
     std::mutex _rendered_image_mutex;
+    std::mutex _camera_update_mutex;
 public:
     void set_world(World *world);
 
