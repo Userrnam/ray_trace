@@ -134,6 +134,7 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat) {
 			// without this noise will appear
 			distance -= tolerance;
 		}
+
 		if (distance > 0 && distance < min_distance) {
 			hit = true;
 			mat = world->triangle_materials[i / 3];

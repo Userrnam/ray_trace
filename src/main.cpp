@@ -9,7 +9,8 @@ void setup_world(World *world) {
 	world->materials = {
 		Material {
 			.color    = { 0.3f, 0.4f, 0.8f },
-			.emissive = { 0.5f, 0.6f, 0.8f },
+			// .emissive = { 0.5f, 0.6f, 0.8f },
+			.emissive = {},
 			.specular = 0.0f
 		},
 		Material {
@@ -29,8 +30,8 @@ void setup_world(World *world) {
 		},
 		Material {
 			.color = { 1.0f, 1.0f, 0.0f },
-			.emissive = {},
-			.specular = 1.0f
+			.emissive = { 6, 6, 0},
+			.specular = 0.0f
 		},
 	};
 
@@ -43,22 +44,25 @@ void setup_world(World *world) {
 	};
 
 	world->spheres = {
-		// Sphere {
-		// 	.pos = { 5, 2, 2 },
-		// 	.r = 2,
-		// 	.mat_index = 3
-		// },
-	// 	Sphere {
-	// 		.pos = { 0, 0, 2.1 },
-	// 		.r = 2,
-	// 		.mat_index = 2
-	// 	},
+		Sphere {
+			.pos = { 5, 2, 2 },
+			.r = 2,
+			.mat_index = 3
+		},
+		Sphere {
+			.pos = { 0, 0, 2.1 },
+			.r = 2,
+			.mat_index = 2
+		},
 	};
 
 	world->triangle_vertices = {
-		{ 2, 2, 0 },
-		{ 0, 4, 0 },
-		{ 0, 2, 2 },
+		// { 2, 2, 0 },
+		// { 0, 4, 0 },
+		// { 0, 2, 2 },
+		{ -5, 4, 5 },
+		{ 5, -5, 5 },
+		{ 5, 4, 5 },
 	};
 
 	world->triangle_indices = { 0, 2, 1 };

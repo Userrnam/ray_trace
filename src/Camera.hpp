@@ -25,6 +25,7 @@ public:
 
 		_center = _pos - _lense_distance * _dir;
 	}
+
 	void rotate_z(float delta) {
 		vec3 _up = { 0, 0, 1 };
 		vec3 right = cross(_up, _dir);
@@ -37,6 +38,15 @@ public:
 		_center = _pos - _lense_distance * _dir;
 		_vertical   = 0.5 * up;
 		_horizontal = 0.5 * (float(_width) / _height) * right;
+	}
+
+	void resize(int width, int height) {
+		vec3 _up = { 0, 0, 1 };
+		vec3 right = cross(_up, _dir);
+		_horizontal = 0.5 * (float(width) / height) * right;
+
+		_width = width;
+		_height = height;
 	}
 
 	void create2(int width, int height, vec3 pos, vec3 dir, float lense_distance) {
