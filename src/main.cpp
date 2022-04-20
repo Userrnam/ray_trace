@@ -5,78 +5,46 @@
 
 #include "Application.hpp"
 
-void setup_world(World *world) {
-	world->materials = {
-		Material {
-			.color    = { 0.3f, 0.4f, 0.8f },
-			.emissive = { 0.5f, 0.6f, 0.8f },
-			.specular = 0.0f
-		},
-		Material {
-			.color = { 0.9f, 0.9f, 0.2f },
-			.emissive = {},
-			.specular = 0.3f
-		},
-		Material {
-			.color = { 0.1f, 0.2f, 0.8f },
-			.emissive = {},
-			.specular = 0.9f
-		},
-		Material {
-			// .color = { 1.0f, 0.0f, 0.0f },
-			.color = { 1.0f, 1.0f, 1.0f },
-			.emissive = {},
-			.specular = 1.0f,
-			.refractiveness = 1.0f,
-			.n = 1.5
-		},
-		Material {
-			.color = { 1.0f, 1.0f, 0.0f },
-			// .emissive = { 6, 6, 0},
-			.specular = 1.0f
-		},
-	};
-
-	world->planes = {
-		Plane {
-			.normal = { 0, 0, 1 },
-			.d = 0,
-			.mat_index = 1,
-		}
-	};
-
-	world->spheres = {
-		Sphere {
-			.pos = { 5, 2, 2 },
-			.r = 2,
-			.mat_index = 3
-		},
-		Sphere {
-			.pos = { 0, 0, 2.1 },
-			.r = 2,
-			.mat_index = 2
-		},
-	};
-
-	world->triangle_vertices = {
-		{ 2, 2, 0 },
-		{ 0, 4, 0 },
-		{ 0, 2, 2 },
-		// { -5, 4, 5 },
-		// { 5, -5, 5 },
-		// { 5, 4, 5 },
-	};
-
-	world->triangle_indices = { 0, 1, 2 };
-	world->triangle_materials = { 4, 4 };
-}
 
 int main() {
 	srand(time(NULL));
 	seed(rand());
 
 	World world;
-	setup_world(&world);
+	world.obj.load("cornell_box.obj");
+
+	world.materials.push_back({
+		// sky
+		.color    = { 0.3f, 0.4f, 0.8f },
+		.emissive = { 0.5f, 0.6f, 0.8f },
+		.specular = 0.0f
+	});
+
+	world.materials.push_back({
+		// Floor
+		.color    = { 1.0f, 0.0f, 0.0f },
+	});
+
+	world.materials.push_back({
+		// Suzanne
+		.color    = { 1.0f, 1.0f, 0.0f },
+	});
+
+	for (const auto& mesh : world.obj.meshes) {
+		std::cout << mesh.name << std::endl;
+	}
+
+	world.mesh_indices.push_back(world.obj.mesh_index["Floor"]);
+	world.mesh_indices.push_back(world.obj.mesh_index["Ceiling"]);
+	world.mesh_indices.push_back(world.obj.mesh_index["LeftWall"]);
+	world.mesh_indices.push_back(world.obj.mesh_index["RightWall"]);
+	world.mesh_indices.push_back(world.obj.mesh_index["Suzanne"]);
+
+	world.mesh_materials.push_back(1);
+	world.mesh_materials.push_back(1);
+	world.mesh_materials.push_back(1);
+	world.mesh_materials.push_back(1);
+	world.mesh_materials.push_back(2);
 
 	Application app;
 	if (!app.init(800, 600)) {

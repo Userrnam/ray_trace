@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stb_image.h>
+#include <unistd.h>
 
 #include "Ray_Trace.hpp"
 
@@ -56,7 +57,8 @@ bool Application::init(int width, int height) {
 
     // create renderer
     // FIXME: move camera from here!
-    _camera.create2(_width, _height, { 0, 15, 2 }, { 0, 1, 0 }, 1);
+    // _camera.create2(_width, _height, { 0, 15, 2 }, { 0, 1, 0 }, 1);
+    _camera.create2(_width, _height, { 11, 0, 3 }, { 1, 0, 0 }, 1);
     _renderer = new Renderer;
     _renderer->set_camera(_camera);
 
@@ -73,9 +75,13 @@ void Application::set_world(World *world) {
 void Application::run() {
     _renderer_thread = new std::thread(&Renderer::run, _renderer);
 
+    float prev = glfwGetTime();
 	while(!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
-        handle_input();
+
+        float cur = glfwGetTime();
+        handle_input(cur - prev);
+        prev = cur;
 
         update_image();
 
@@ -92,10 +98,10 @@ void Application::run() {
 	glfwTerminate();
 }
 
-void Application::handle_input() {
+void Application::handle_input(float dt) {
     // FIXME
-    float velocity = 0.08;
-    float velocity2 = 0.04;
+    float velocity  = 10;
+    float velocity2 = 10;
     vec3 v = {};
     float r = 0;
     if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS) v.y -= velocity;
@@ -113,13 +119,13 @@ void Application::handle_input() {
 
     bool updated = false;
     if (v.x != 0 || v.y != 0 || v.z != 0) {
-        _camera.move(v);
+        _camera.move(dt * v);
         std::cout << "pos: " << _camera.get_position() << std::endl;
         std::cout << "dir: " << _camera.get_direction() << std::endl;
         updated = true;
     }
     if (r) {
-        _camera.rotate_z(r);
+        _camera.rotate_z(dt * r);
         updated = true;
     }
     if (updated) {

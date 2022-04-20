@@ -132,36 +132,36 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 		}
 	}
 
-	for (int i = 0; i < world->triangle_indices.size(); i += 3) {
-		float distance = intersect_triangle(ray,
-			world->triangle_vertices[world->triangle_indices[i+0]],
-			world->triangle_vertices[world->triangle_indices[i+1]],
-			world->triangle_vertices[world->triangle_indices[i+2]]
-		);
+	for (int mesh_index = 0; mesh_index < world->mesh_indices.size(); ++mesh_index) {
+		const Mesh& mesh = world->obj.meshes[world->mesh_indices[mesh_index]];
+		for (int i = 0; i < mesh.vertex_indices.size(); i += 3) {
+			float distance = intersect_triangle(ray,
+				world->obj.vertices[mesh.vertex_indices[i+0]],
+				world->obj.vertices[mesh.vertex_indices[i+1]],
+				world->obj.vertices[mesh.vertex_indices[i+2]]
+			);
 
-		vec3 N = cross(
-			world->triangle_vertices[world->triangle_indices[i+0]] - world->triangle_vertices[world->triangle_indices[i+1]],
-			world->triangle_vertices[world->triangle_indices[i+0]] - world->triangle_vertices[world->triangle_indices[i+2]]
-		);
+			vec3 N = world->obj.normals[mesh.normal_indices[i]];
 
-		bool inside = false;
+			bool inside = false;
 
-		// triangle normal is looking in wrong direction.
-		if (dot(N, ray.dir) > 0) {
-			inside = true;
-			// N = -N;
-			// without this noise will appear
-			distance -= tolerance;
-		}
+			// triangle normal is looking in wrong direction.
+			if (dot(N, ray.dir) > 0) {
+				inside = true;
+				// N = -N;
+				// without this noise will appear
+				distance -= tolerance;
+			}
 
-		if (distance > 0 && distance < min_distance) {
-			hit = true;
-			mat = world->triangle_materials[i / 3];
-			min_distance = distance;
+			if (distance > 0 && distance < min_distance) {
+				hit = true;
+				mat = world->mesh_materials[mesh_index];
+				min_distance = distance;
 
-			pos = distance * ray.dir + ray.origin;
-			normal = N;
-			hit_from_inside = inside;
+				pos = distance * ray.dir + ray.origin;
+				normal = N;
+				hit_from_inside = inside;
+			}
 		}
 	}
 

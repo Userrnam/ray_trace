@@ -32,7 +32,7 @@ private:
     unsigned int _texture;
 
     void update_image();
-    void handle_input();
+    void handle_input(float dt);
 
     // create VBO, VAO, Texture, Shaders
     void create_rendering_structures();

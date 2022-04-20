@@ -3,6 +3,8 @@
 #include <vector>
 
 #include "Math.hpp"
+#include "Obj_Loader.hpp"
+
 
 struct Material {
 	vec3 color = {};
@@ -29,7 +31,7 @@ struct World {
 	std::vector<Plane> planes;
 	std::vector<Sphere> spheres;
 
-	std::vector<vec3> triangle_vertices;
-	std::vector<int> triangle_indices;
-	std::vector<int> triangle_materials;
+	Obj_File obj;
+	std::vector<int> mesh_indices;
+	std::vector<int> mesh_materials;
 };

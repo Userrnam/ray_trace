@@ -29,7 +29,7 @@ void Renderer::run() {
 
                 ray = _camera.get_ray(x, y);
 
-                color = ray_color(_world, ray, _samples, 30, _samples * iteration, &_sums[y * _camera.get_width() + x]);
+                color = ray_color(_world, ray, _samples, 5, _samples * iteration, &_sums[y * _camera.get_width() + x]);
 
                 _image[y * _camera.get_width() + x] = color;
             }
