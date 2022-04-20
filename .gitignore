@@ -1,8 +1,10 @@
 .cquery_cache
 .vscode
+.vs
 .cquery
 build
 .DS_Store
 .cache
 compile_commands.json
 build.conf
+x64

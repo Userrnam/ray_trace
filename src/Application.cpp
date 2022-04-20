@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <stb_image.h>
-#include <unistd.h>
+#include <assert.h>
 
 #include "Ray_Trace.hpp"
 

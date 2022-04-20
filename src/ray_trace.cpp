@@ -1,5 +1,6 @@
 #include "Ray_Trace.hpp"
 
+#include <float.h>
 
 u32 state;
 inline u32 xor_shift_32() {
@@ -26,7 +27,7 @@ bool probability_value(float p) {
 
 float reflectance(float cosine, float ref_idx) {
 	// Use Schlick's approximation for reflectance.
-	auto r0 = (1-ref_idx) / (1+ref_idx);
+	float r0 = (1-ref_idx) / (1+ref_idx);
 	r0 = r0*r0;
 	return r0 + (1-r0)*pow((1 - cosine),5);
 }
@@ -99,7 +100,7 @@ float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const v
 }
 
 bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hit_from_inside) {
-	float min_distance = MAXFLOAT;
+	float min_distance = FLT_MAX;
 	bool hit = false;
 
 	mat = 0;
@@ -232,5 +233,5 @@ vec3 ray_color(World *world, const Ray& ray, int sample_count, int bounce_count,
 		*sum += ray_bounce(world, ray, bounce_count);
 	}
 
-	return 1.0 / float(sample_count+prev_count) * *sum;
+	return 1.0f / float(sample_count+prev_count) * *sum;
 }

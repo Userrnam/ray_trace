@@ -38,13 +38,13 @@ int main() {
 	world.mesh_indices.push_back(world.obj.mesh_index["Ceiling"]);
 	world.mesh_indices.push_back(world.obj.mesh_index["LeftWall"]);
 	world.mesh_indices.push_back(world.obj.mesh_index["RightWall"]);
-	world.mesh_indices.push_back(world.obj.mesh_index["Suzanne"]);
+	//world.mesh_indices.push_back(world.obj.mesh_index["Suzanne"]);
 
 	world.mesh_materials.push_back(1);
 	world.mesh_materials.push_back(1);
 	world.mesh_materials.push_back(1);
 	world.mesh_materials.push_back(1);
-	world.mesh_materials.push_back(2);
+	//world.mesh_materials.push_back(2);
 
 	Application app;
 	if (!app.init(800, 600)) {
