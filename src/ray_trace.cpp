@@ -135,6 +135,9 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 
 	for (int mesh_index = 0; mesh_index < world->mesh_indices.size(); ++mesh_index) {
 		const Mesh& mesh = world->obj.meshes[world->mesh_indices[mesh_index]];
+		if (!mesh.bounding_box.intersect(ray)) {
+			continue;
+		}
 		for (int i = 0; i < mesh.vertex_indices.size(); i += 3) {
 			float distance = intersect_triangle(ray,
 				world->obj.vertices[mesh.vertex_indices[i+0]],

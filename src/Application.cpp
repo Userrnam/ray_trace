@@ -76,6 +76,7 @@ void Application::run() {
     _renderer_thread = new std::thread(&Renderer::run, _renderer);
 
     float prev = glfwGetTime();
+    int prev_iteration = -1;
 	while(!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
 
@@ -84,6 +85,11 @@ void Application::run() {
         prev = cur;
 
         update_image();
+        int iteration = _renderer->get_iteration();
+        if (iteration != prev_iteration) {
+			std::cout << "Iteration: " << iteration << std::endl;
+            prev_iteration = iteration;
+        }
 
 		glfwSwapBuffers(_window);
 	}
@@ -120,8 +126,6 @@ void Application::handle_input(float dt) {
     bool updated = false;
     if (v.x != 0 || v.y != 0 || v.z != 0) {
         _camera.move(dt * v);
-        std::cout << "pos: " << _camera.get_position() << std::endl;
-        std::cout << "dir: " << _camera.get_direction() << std::endl;
         updated = true;
     }
     if (r) {

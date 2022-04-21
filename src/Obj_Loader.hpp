@@ -5,13 +5,15 @@
 #include <string>
 
 #include "Math.hpp"
+#include "Bounding_Box.hpp"
+
 
 struct Mesh {
+    Bounding_Box bounding_box;
     std::string name;
     std::vector<int> vertex_indices;
     std::vector<int> normal_indices;
 };
-
 
 struct Obj_File {
     std::vector<vec3> vertices;

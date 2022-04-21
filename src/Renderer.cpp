@@ -14,9 +14,9 @@ void Renderer::set_camera(Camera camera) {
 }
 
 void Renderer::run() {
-    int iteration = 0;
     int _samples = 1;
 
+    int ray_bounce = _ray_bounce;
     while (!_stop) {
         Ray ray;
         vec3 color;
@@ -29,12 +29,12 @@ void Renderer::run() {
 
                 ray = _camera.get_ray(x, y);
 
-                color = ray_color(_world, ray, _samples, 5, _samples * iteration, &_sums[y * _camera.get_width() + x]);
+                color = ray_color(_world, ray, _samples, ray_bounce, _samples * _iteration, &_sums[y * _camera.get_width() + x]);
 
                 _image[y * _camera.get_width() + x] = color;
             }
         }
-        iteration++;
+        _iteration++;
         // copy data from image to rendered_image
         _rendered_image_mutex.lock();
         memcpy(&_rendered_image[0], &_image[0], _image.size() * sizeof(_image[0]));
@@ -48,7 +48,7 @@ restart:
         _image.resize(_camera.get_width() * _camera.get_height());
         _sums.clear();
         _sums.resize(_camera.get_width() * _camera.get_height(), {});
-        iteration = 0;
+        _iteration = 0;
         _restart = false;
         _camera_update_mutex.unlock();
     }

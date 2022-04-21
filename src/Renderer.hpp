@@ -15,8 +15,13 @@ class Renderer {
     bool _restart = false;
     std::mutex _rendered_image_mutex;
     std::mutex _camera_update_mutex;
+    int _ray_bounce = 5;
+    int _iteration = 0;
 public:
     void set_world(World *world);
+
+    void set_ray_bounce(int ray_bounce) { _ray_bounce = ray_bounce; }
+    int get_iteration() { return _iteration; }
 
     // camera update will restart rendering
     void set_camera(Camera camera);

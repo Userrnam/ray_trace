@@ -53,4 +53,21 @@ void Obj_File::load(const std::string& path) {
             }
         }
     }
+
+    // calculate bounding boxes for meshes
+    for (auto& mesh : meshes) {
+        mesh.bounding_box.points[0] = vertices[mesh.vertex_indices[0]];
+        mesh.bounding_box.points[1] = vertices[mesh.vertex_indices[0]];
+        for (int index : mesh.vertex_indices) {
+            auto& vertex = vertices[index];
+            for (int i = 0; i < 3; ++i) {
+				if (vertex.arr()[i] > mesh.bounding_box.points[1].arr()[i]) {
+					mesh.bounding_box.points[1].arr()[i] = vertex.arr()[i];
+				}
+				if (vertex.arr()[i] < mesh.bounding_box.points[0].arr()[i]) {
+					mesh.bounding_box.points[0].arr()[i] = vertex.arr()[i];
+				}
+            }
+        }
+    }
 }

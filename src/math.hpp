@@ -17,10 +17,16 @@ typedef int64_t s64;
 
 
 struct vec3 {
-	float x, y, z;
+	float x;
+	float y;
+	float z;
 
 	vec3() { x = 0; y = 0; z = 0; }
 	vec3(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
+
+	float* arr() {
+		return &x;
+	}
 
 	void operator+=(vec3 b) {
 		x += b.x;
@@ -33,6 +39,11 @@ struct vec3 {
 		y -= b.y;
 		z -= b.z;
 	}
+};
+
+struct Ray {
+	vec3 origin;
+	vec3 dir;
 };
 
 inline
