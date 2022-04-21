@@ -73,7 +73,7 @@ void Application::set_world(World *world) {
 }
 
 void Application::run() {
-    _renderer_thread = new std::thread(&Renderer::run, _renderer);
+    _renderer_thread = new std::thread(&Renderer::run, _renderer, 4);
 
     float prev = glfwGetTime();
     int prev_iteration = -1;

@@ -26,7 +26,7 @@ public:
     // camera update will restart rendering
     void set_camera(Camera camera);
 
-    void run();
+    void run(int thread_count);
     void stop();
 
     // returns rendered image, content of rendered image is not modified until the image is returned with release_rendered_image.

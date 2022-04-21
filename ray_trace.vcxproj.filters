@@ -9,6 +9,7 @@
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\stb_impl.cpp" />
     <ClCompile Include="src\Bounding_Box.cpp" />
+    <ClCompile Include="src\Job_System.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.hpp" />
@@ -21,5 +22,6 @@
     <ClInclude Include="include\stb_image.h" />
     <ClInclude Include="include\stb_image_read.h" />
     <ClInclude Include="src\Bounding_Box.hpp" />
+    <ClInclude Include="src\Job_System.hpp" />
   </ItemGroup>
 </Project>

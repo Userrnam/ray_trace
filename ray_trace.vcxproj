@@ -150,6 +150,7 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Bounding_Box.cpp" />
     <ClCompile Include="src\glad.cpp" />
+    <ClCompile Include="src\Job_System.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Obj_Loader.cpp" />
     <ClCompile Include="src\Ray_Trace.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="src\Application.hpp" />
     <ClInclude Include="src\Bounding_Box.hpp" />
     <ClInclude Include="src\Camera.hpp" />
+    <ClInclude Include="src\Job_System.hpp" />
     <ClInclude Include="src\Math.hpp" />
     <ClInclude Include="src\Obj_Loader.hpp" />
     <ClInclude Include="src\Ray_Trace.hpp" />
