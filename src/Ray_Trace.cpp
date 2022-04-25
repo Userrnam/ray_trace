@@ -138,14 +138,30 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 		if (!mesh.bounding_box.intersect(ray)) {
 			continue;
 		}
-		for (int i = 0; i < mesh.vertex_indices.size(); i += 3) {
+
+		static int counter = 0;
+		counter++;
+		if (counter == 30964) {
+			int k = 415;
+		}
+		std::vector<int> vertex_indices;// = mesh.vertex_indices;
+		std::vector<int> normal_indices;// = mesh.normal_indices;
+		if (!mesh.bvh.intersect(ray, vertex_indices, normal_indices)) {
+			continue;
+		}
+
+		for (int i = 0; i < vertex_indices.size(); i += 3) {
 			float distance = intersect_triangle(ray,
-				world->obj.vertices[mesh.vertex_indices[i+0]],
-				world->obj.vertices[mesh.vertex_indices[i+1]],
-				world->obj.vertices[mesh.vertex_indices[i+2]]
+				world->obj.vertices[vertex_indices[i+0]],
+				world->obj.vertices[vertex_indices[i+1]],
+				world->obj.vertices[vertex_indices[i+2]]
 			);
 
-			vec3 N = world->obj.normals[mesh.normal_indices[i]];
+			auto v1 = world->obj.vertices[vertex_indices[i + 0]];
+			auto v2 = world->obj.vertices[vertex_indices[i + 1]];
+			auto v3 = world->obj.vertices[vertex_indices[i + 2]];
+
+			vec3 N = world->obj.normals[normal_indices[i]];
 
 			bool inside = false;
 
@@ -155,6 +171,17 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 				// N = -N;
 				// without this noise will appear
 				distance -= tolerance;
+			}
+			else if (distance > 0 && N.z > 0) {
+				int k = 432;
+			}
+			if (distance > 0 && N.y < 0) {
+				std::vector<int> vertex_indices;// = mesh.vertex_indices;
+				std::vector<int> normal_indices;// = mesh.normal_indices;
+				if (!mesh.bvh.intersect(ray, vertex_indices, normal_indices)) {
+					int dummy = 42;
+				}
+				int k = 52;
 			}
 
 			if (distance > 0 && distance < min_distance) {

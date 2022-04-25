@@ -34,4 +34,9 @@ struct World {
 	Obj_File obj;
 	std::vector<int> mesh_indices;
 	std::vector<int> mesh_materials;
+
+	void add_obj(const std::string& name, int material_index) {
+		mesh_indices.push_back(obj.mesh_index[name]);
+		mesh_materials.push_back(material_index);
+	}
 };

@@ -30,23 +30,28 @@ int main() {
 	world.materials.push_back({
 		// Suzanne
 		.color    = { 1.0f, 1.0f, 0.0f },
+		.specular = 1.0,
+		.refractiveness = 1.0,
+		.n = 1.7
+	});
+
+	world.materials.push_back({
+		// Light
+		.color = { 1.0f, 1.0f, 1.0f },
+		.emissive = { 3.0f, 3.0f, 3.0f }
 	});
 
 	for (const auto& mesh : world.obj.meshes) {
 		std::cout << mesh.name << std::endl;
 	}
 
-	world.mesh_indices.push_back(world.obj.mesh_index["Floor"]);
-	//world.mesh_indices.push_back(world.obj.mesh_index["Ceiling"]);
-	//world.mesh_indices.push_back(world.obj.mesh_index["LeftWall"]);
-	//world.mesh_indices.push_back(world.obj.mesh_index["RightWall"]);
-	world.mesh_indices.push_back(world.obj.mesh_index["Suzanne"]);
-
-	world.mesh_materials.push_back(1);
-	//world.mesh_materials.push_back(1);
-	//world.mesh_materials.push_back(1);
-	//world.mesh_materials.push_back(1);
-	world.mesh_materials.push_back(2);
+	world.add_obj("Floor", 1);
+	world.add_obj("Ceiling", 1);
+	world.add_obj("Light", 3);
+	world.add_obj("LeftWall", 1);
+	world.add_obj("RightWall", 1);
+	world.add_obj("BackWall", 1);
+	world.add_obj("Suzanne", 2);
 
 	Application app;
 	if (!app.init(800, 600)) {

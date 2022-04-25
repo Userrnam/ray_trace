@@ -57,8 +57,8 @@ bool Application::init(int width, int height) {
 
     // create renderer
     // FIXME: move camera from here!
-    // _camera.create2(_width, _height, { 0, 15, 2 }, { 0, 1, 0 }, 1);
-    _camera.create2(_width, _height, { 11, 0, 3 }, { 1, 0, 0 }, 1);
+    //_camera.create2(_width, _height, { 11, 0, 3 }, { 1, 0, 0 }, 1);
+    _camera.create2(_width, _height, { 4, 2, 2 }, { 1, 0, 0 }, 1);
     _renderer = new Renderer;
     _renderer->set_camera(_camera);
 
@@ -73,10 +73,11 @@ void Application::set_world(World *world) {
 }
 
 void Application::run() {
-    _renderer_thread = new std::thread(&Renderer::run, _renderer, 4);
+    _renderer_thread = new std::thread(&Renderer::run, _renderer, 6);
 
     float prev = glfwGetTime();
     int prev_iteration = -1;
+    float start = prev;
 	while(!glfwWindowShouldClose(_window)) {
 		glfwPollEvents();
 
@@ -89,6 +90,10 @@ void Application::run() {
         if (iteration != prev_iteration) {
 			std::cout << "Iteration: " << iteration << std::endl;
             prev_iteration = iteration;
+            if (iteration == 10) {
+                std::cout << "Done in " << cur - start << std::endl;
+                // 21
+            }
         }
 
 		glfwSwapBuffers(_window);
