@@ -135,15 +135,7 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 
 	for (int mesh_index = 0; mesh_index < world->mesh_indices.size(); ++mesh_index) {
 		const Mesh& mesh = world->obj.meshes[world->mesh_indices[mesh_index]];
-		if (!mesh.bounding_box.intersect(ray)) {
-			continue;
-		}
 
-		static int counter = 0;
-		counter++;
-		if (counter == 30964) {
-			int k = 415;
-		}
 		std::vector<int> vertex_indices;// = mesh.vertex_indices;
 		std::vector<int> normal_indices;// = mesh.normal_indices;
 		if (!mesh.bvh.intersect(ray, vertex_indices, normal_indices)) {
@@ -171,17 +163,6 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 				// N = -N;
 				// without this noise will appear
 				distance -= tolerance;
-			}
-			else if (distance > 0 && N.z > 0) {
-				int k = 432;
-			}
-			if (distance > 0 && N.y < 0) {
-				std::vector<int> vertex_indices;// = mesh.vertex_indices;
-				std::vector<int> normal_indices;// = mesh.normal_indices;
-				if (!mesh.bvh.intersect(ray, vertex_indices, normal_indices)) {
-					int dummy = 42;
-				}
-				int k = 52;
 			}
 
 			if (distance > 0 && distance < min_distance) {
