@@ -11,6 +11,8 @@ include_directories(/usr/local/include)
 add_executable(${PROJECT_NAME}
 	src/stb_impl.cpp
 	src/Obj_Loader.cpp
+	src/Bounding_Box.cpp
+	src/Job_System.cpp
 	src/Ray_Trace.cpp
 	src/glad.cpp
 	src/Application.cpp
