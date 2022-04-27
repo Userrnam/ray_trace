@@ -3,6 +3,8 @@
 #include <float.h>
 #include <algorithm>
 #include <assert.h>
+//#include <emmintrin.h>
+//#include <xmmintrin.h>
 
 #include "Obj_Loader.hpp"
 
@@ -18,75 +20,116 @@ float intersect_p(const Ray& ray, vec3 normal, float d) {
 }
 
 bool Bounding_Box::intersect(const Ray& ray) const {
-	// if ray is inside bounding box return true
-	if (points[0].x < ray.origin.x && ray.origin.x < points[1].x &&
-		points[0].y < ray.origin.y && ray.origin.y < points[1].y &&
-		points[0].z < ray.origin.z && ray.origin.z < points[1].z) {
+    if (0) {
+		// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+        //float _rd[4] = { ray.invdir.x, ray.invdir.y, ray.invdir.z, 0.0f };
+        //float _ro[4] = { ray.origin.x, ray.origin.y, ray.origin.z, 0.0f };
+        //float _p0[4] = { points[0].x, points[0].y, points[0].z, 0.0f };
+        //float _p1[4] = { points[1].x, points[1].y, points[1].z, 0.0f };
+        //__m128 rd = _mm_load_ps(_rd);
+        //__m128 ro = _mm_load_ps(_ro);
+        //__m128 p0 = _mm_load_ps(_p0);
+        //__m128 p1 = _mm_load_ps(_p1);
+        //__m128 p0_od = _mm_mul_ps(_mm_sub_ps(p0, ro), rd);
+        //__m128 p1_od = _mm_mul_ps(_mm_sub_ps(p1, ro), rd);
+        //__m128 zero = _mm_set1_ps(0.0f);
+        //__m128 mask_lt = _mm_cmplt_ps(rd, zero);
+        //__m128 mask_ge = _mm_cmpge_ps(rd, zero);
+        //__m128 min = _mm_add_ps(_mm_and_ps(p1_od, mask_lt), _mm_and_ps(p0_od, mask_ge));
+        //__m128 max = _mm_add_ps(_mm_and_ps(p0_od, mask_ge), _mm_and_ps(p0_od, mask_lt));
+
+		float tmin =  (points[ray.dir.x <  0].x - ray.origin.x) * ray.invdir.x;
+		float tmax =  (points[ray.dir.x >= 0].x - ray.origin.x) * ray.invdir.x;
+		float tymin = (points[ray.dir.y <  0].y - ray.origin.y) * ray.invdir.y;
+		float tymax = (points[ray.dir.y >= 0].y - ray.origin.y) * ray.invdir.y;
+
+		if ((tmin > tymax) || (tymin > tmax))
+			return false;
+
+		if (tymin > tmin)
+			tmin = tymin;
+		if (tymax < tmax)
+			tmax = tymax;
+
+		float tzmin = (points[ray.dir.z < 0].z - ray.origin.z) * ray.invdir.z;
+		float tzmax = (points[ray.dir.z >= 0].z - ray.origin.z) * ray.invdir.z;
+
+		if ((tmin > tzmax) || (tzmin > tmax))
+			return false;
+
 		return true;
-	}
+    }
+    else {
+        // if ray is inside bounding box return true
+        if (points[0].x < ray.origin.x && ray.origin.x < points[1].x &&
+            points[0].y < ray.origin.y && ray.origin.y < points[1].y &&
+            points[0].z < ray.origin.z && ray.origin.z < points[1].z) {
+            return true;
+        }
 
-	// right
-	if (ray.dir.x < -0.001) {
-		float t = -(ray.origin.x - points[1].x) / ray.dir.x;
+        // right
+        if (ray.dir.x < -0.001) {
+            float t = (points[1].x - ray.origin.x) * ray.invdir.x;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
-			points[0].z <= p.z && p.z <= points[1].z) {
-			return true;
-		}
-	}
-	// back
-	if (ray.dir.y < -0.001) {
-		float t = -(ray.origin.y - points[1].y) / ray.dir.y;
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
+                points[0].z <= p.z && p.z <= points[1].z) {
+                return true;
+            }
+        }
+        // back
+        if (ray.dir.y < -0.001) {
+            float t = (points[1].y - ray.origin.y) * ray.invdir.y;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-			points[0].z <= p.z && p.z <= points[1].z) {
-			return true;
-		}
-	}
-	// top
-	if (ray.dir.z < -0.001) {
-		float t = -(ray.origin.z - points[1].z) / ray.dir.z;
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+                points[0].z <= p.z && p.z <= points[1].z) {
+                return true;
+            }
+        }
+        // top
+        if (ray.dir.z < -0.001) {
+            float t = (points[1].z - ray.origin.z) * ray.invdir.z;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-			points[0].y <= p.y && p.y <= points[1].y) {
-			return true;
-		}
-	}
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+                points[0].y <= p.y && p.y <= points[1].y) {
+                return true;
+            }
+        }
 
-	// left
-	if (ray.dir.x > 0.001) {
-		float t = -(ray.origin.x - points[0].x) / ray.dir.x;
+        // left
+        if (ray.dir.x > 0.001) {
+            float t = (points[0].x - ray.origin.x) * ray.invdir.x;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
-			points[0].z <= p.z && p.z <= points[1].z) {
-			return true;
-		}
-	}
-	// front
-	if (ray.dir.y > 0.001) {
-		float t = -(ray.origin.y - points[0].y) / ray.dir.y;
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
+                points[0].z <= p.z && p.z <= points[1].z) {
+                return true;
+            }
+        }
+        // front
+        if (ray.dir.y > 0.001) {
+            float t = (points[0].y - ray.origin.y) * ray.invdir.y;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-			points[0].z <= p.z && p.z <= points[1].z) {
-			return true;
-		}
-	}
-	// bottom
-	if (ray.dir.z > 0.001) {
-		float t = -(ray.origin.z - points[0].z) / ray.dir.z;
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+                points[0].z <= p.z && p.z <= points[1].z) {
+                return true;
+            }
+        }
+        // bottom
+        if (ray.dir.z > 0.001) {
+            float t = (points[0].z - ray.origin.z) * ray.invdir.z;
 
-		vec3 p = ray.origin + t * ray.dir;
-		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-			points[0].y <= p.y && p.y <= points[1].y) {
-			return true;
-		}
-	}
-	return false;
+            vec3 p = ray.origin + t * ray.dir;
+            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+                points[0].y <= p.y && p.y <= points[1].y) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 bool BVH_Node::intersect(Ray ray, std::vector<int>& _vertex_indices, std::vector<int>& _normal_indices) const {

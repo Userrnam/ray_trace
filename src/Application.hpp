@@ -13,7 +13,7 @@
 
 class Application {
 public:
-    bool init(int width, int height);
+    bool init(int width, int height, Renderer* renderer);
     void set_world(World *world);
     void run();
 

@@ -23,7 +23,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     app->window_resized(width, height);
 }
 
-bool Application::init(int width, int height) {
+bool Application::init(int width, int height, Renderer *renderer) {
     _width  = width;
     _height = height;
 
@@ -59,7 +59,8 @@ bool Application::init(int width, int height) {
     // FIXME: move camera from here!
     //_camera.create2(_width, _height, { 11, 0, 3 }, { 1, 0, 0 }, 1);
     _camera.create2(_width, _height, { 4, 2, 2 }, { 1, 0, 0 }, 1);
-    _renderer = new Renderer;
+
+    _renderer = renderer;
     _renderer->set_camera(_camera);
 
     return true;
@@ -73,7 +74,7 @@ void Application::set_world(World *world) {
 }
 
 void Application::run() {
-    _renderer_thread = new std::thread(&Renderer::run, _renderer, 6);
+    _renderer_thread = new std::thread(&Renderer::run, _renderer);
 
     float prev = glfwGetTime();
     int prev_iteration = -1;
@@ -92,7 +93,6 @@ void Application::run() {
             prev_iteration = iteration;
             if (iteration == 10) {
                 std::cout << "Done in " << cur - start << std::endl;
-                // 21
             }
         }
 

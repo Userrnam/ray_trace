@@ -6,7 +6,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Obj_Loader.cpp" />
     <ClCompile Include="src\Ray_Trace.cpp" />
-    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\CPURenderer.cpp" />
     <ClCompile Include="src\stb_impl.cpp" />
     <ClCompile Include="src\BVH.cpp" />
     <ClCompile Include="src\Job_System.cpp" />
@@ -17,11 +17,12 @@
     <ClInclude Include="src\Math.hpp" />
     <ClInclude Include="src\Obj_Loader.hpp" />
     <ClInclude Include="src\Ray_Trace.hpp" />
-    <ClInclude Include="src\Renderer.hpp" />
+    <ClInclude Include="src\CPURenderer.hpp" />
     <ClInclude Include="src\World.hpp" />
     <ClInclude Include="include\stb_image.h" />
     <ClInclude Include="include\stb_image_read.h" />
     <ClInclude Include="src\BVH.hpp" />
     <ClInclude Include="src\Job_System.hpp" />
+    <ClInclude Include="src\Renderer.hpp" />
   </ItemGroup>
 </Project>

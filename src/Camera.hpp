@@ -78,9 +78,10 @@ public:
 		u += 0.5/_width * float(rand()) / RAND_MAX;
 		v += 0.5/_height * float(rand()) / RAND_MAX;
 
-		Ray rey;
-		rey.origin = _pos;
-		rey.dir = norm(_center + u * _horizontal + v * _vertical - _pos);
-		return rey;
+		Ray ray;
+		ray.origin = _pos;
+		ray.dir = norm(_center + u * _horizontal + v * _vertical - _pos);
+		ray.update();
+		return ray;
 	}
 };

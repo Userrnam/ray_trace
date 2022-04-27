@@ -6,6 +6,7 @@
 #include "Application.hpp"
 #include "Job_System.hpp"
 
+#include "CPURenderer.hpp"
 
 int main() {
 	srand(time(NULL));
@@ -53,7 +54,7 @@ int main() {
 	world.add_obj("Suzanne", 2);
 
 	Application app;
-	if (!app.init(800, 600)) {
+	if (!app.init(800, 600, new CPURenderer(6))) {
 		return -1;
 	}
 

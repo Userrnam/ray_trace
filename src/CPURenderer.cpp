@@ -1,15 +1,19 @@
-#include "Renderer.hpp"
+#include "CPURenderer.hpp"
 
 #include "Job_System.hpp"
 #include "Ray_Trace.hpp"
 
 
-void Renderer::set_world(World *world) {
+CPURenderer::CPURenderer(int thread_count) {
+    _thread_count = thread_count;
+}
+
+void CPURenderer::set_world(World *world) {
     _world = world;
     _restart = true;
 }
 
-void Renderer::set_camera(Camera camera) {
+void CPURenderer::set_camera(Camera camera) {
     _camera_update_mutex.lock();
     _camera = camera;
     _restart = true;
@@ -37,10 +41,10 @@ void ray_color_job(void* user_data) {
         params->global->ray_bounce, params->global->samples * params->global->iteration, params->sum);
 }
 
-void Renderer::run(int thread_count) {
+void CPURenderer::run() {
     Job_System job_system;
 
-    job_system.create(thread_count);
+    job_system.create(_thread_count);
 
     Global_Ray_Params global;
     global.world = _world;
@@ -119,15 +123,15 @@ restart:
     job_system.destroy();
 }
 
-void Renderer::stop() {
+void CPURenderer::stop() {
     _stop = true;
 }
 
-const std::vector<vec3> &Renderer::get_rendered_image() {
+const std::vector<vec3> &CPURenderer::get_rendered_image() {
     _rendered_image_mutex.lock();
     return _rendered_image;
 }
 
-void Renderer::release_rendered_image() {
+void CPURenderer::release_rendered_image() {
     _rendered_image_mutex.unlock();
 }

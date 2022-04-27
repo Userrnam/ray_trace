@@ -229,6 +229,8 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 			}
 		}
 
+		ray.update();
+
 		return mat.emissive + cos_att * mul(mat.color, ray_bounce(world, ray, bounce_count - 1, false));
 	}
 

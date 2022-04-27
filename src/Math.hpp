@@ -44,6 +44,11 @@ struct vec3 {
 struct Ray {
 	vec3 origin;
 	vec3 dir;
+	vec3 invdir;
+
+	void update() {
+		invdir = { 1.0f / dir.x, 1.0f / dir.y, 1.0f / dir.z };
+	}
 };
 
 inline
