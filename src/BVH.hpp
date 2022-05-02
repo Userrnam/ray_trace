@@ -16,23 +16,21 @@ struct BVH_Node {
     int left = -1;
     int right = -1;
 
-    // TODO: store triangle indices
-    std::vector<int> vertex_indices;
-    std::vector<int> normal_indices;
+    std::vector<int> triangle_indices;
 
     // returns vector of triangles to check.
-    bool intersect(const std::vector<BVH_Node>& nodes, Ray ray, std::vector<int>& vertex_indices, std::vector<int>& normal_indices) const;
+    bool intersect(const std::vector<BVH_Node>& nodes, Ray ray, std::vector<int>& triangle_indices) const;
 };
 
 class BVH {
     std::vector<BVH_Node> _nodes;
     int _root;
 
-    BVH_Node build_recursive(struct Obj_File* obj_file, int split_axes, const std::vector<int>& vertex_indices, const std::vector<int>& normal_indices);
+    BVH_Node build_recursive(struct Obj_File* obj_file, struct Mesh* mesh, int split_axes, const std::vector<int>& triangle_indices);
 public:
     void build(struct Mesh* mesh, struct Obj_File* obj_file);
 
     // returns vector of triangles to check.
-    bool intersect(Ray ray, std::vector<int>& vertex_indices, std::vector<int>& normal_indices) const;
+    bool intersect(Ray ray, std::vector<int>& triangle_indices) const;
 };
 
