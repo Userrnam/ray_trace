@@ -87,18 +87,18 @@ void GPURenderer::set_world(World* world) {
 	CREATE_AND_WRITE(_normals, world->obj.normals);
 	CREATE_AND_WRITE(_materials, world->materials);
 
-	for (int mesh_index : world->mesh_indices) {
-		const auto& mesh = world->obj.meshes[mesh_index];
+	//for (int mesh_index : world->mesh_indices) {
+		//const auto& mesh = world->obj.meshes[mesh_index];
 		
-		GPUMesh gpu_mesh;
-		CREATE_AND_WRITE(gpu_mesh.bvh, mesh.bvh.get_nodes());
-		CREATE_AND_WRITE(gpu_mesh.vertex_indices, mesh.vertex_indices);
-		CREATE_AND_WRITE(gpu_mesh.normal_indices, mesh.normal_indices);
+		//GPUMesh gpu_mesh;
+		//CREATE_AND_WRITE(gpu_mesh.bvh, mesh.bvh.get_nodes());
+		//CREATE_AND_WRITE(gpu_mesh.vertex_indices, mesh.vertex_indices);
+		//CREATE_AND_WRITE(gpu_mesh.normal_indices, mesh.normal_indices);
 
-		_meshes_vector.push_back(gpu_mesh);
-	}
+		//_meshes_vector.push_back(gpu_mesh);
+	//}
 
-	CREATE_AND_WRITE(_meshes, _meshes_vector);
+	//CREATE_AND_WRITE(_meshes, _meshes_vector);
 }
 
 void GPURenderer::set_camera(Camera camera) {

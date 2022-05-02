@@ -133,8 +133,9 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 		}
 	}
 
+	const Obj_File& obj = world->obj;
 	for (int mesh_index = 0; mesh_index < world->mesh_indices.size(); ++mesh_index) {
-		const Mesh& mesh = world->obj.meshes[world->mesh_indices[mesh_index]];
+		const Mesh& mesh = obj.meshes[world->mesh_indices[mesh_index]];
 
 		std::vector<int> triangle_indices;
 		if (!mesh.bvh.intersect(ray, triangle_indices)) {
@@ -143,12 +144,12 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 
 		for (int triangle_index : triangle_indices) {
 			float distance = intersect_triangle(ray,
-				world->obj.vertices[mesh.vertex_indices[3 * triangle_index + 0]],
-				world->obj.vertices[mesh.vertex_indices[3 * triangle_index + 1]],
-				world->obj.vertices[mesh.vertex_indices[3 * triangle_index + 2]]
+				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 0]],
+				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 1]],
+				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 2]]
 			);
 
-			vec3 N = world->obj.normals[mesh.normal_indices[3 * triangle_index]];
+			vec3 N = obj.normals[obj.normal_indices[mesh.ni_first + 3 * triangle_index]];
 
 			bool inside = false;
 
@@ -162,7 +163,7 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 
 			if (distance > 0 && distance < min_distance) {
 				hit = true;
-				mat = world->mesh_materials[mesh_index];
+				mat = mesh.material_index;
 				min_distance = distance;
 
 				pos = distance * ray.dir + ray.origin;

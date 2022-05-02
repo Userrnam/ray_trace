@@ -157,11 +157,11 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
     BVH_Node node = {};
 
     // calculate bounding volume.
-	node.bounding_box.points[0] = obj_file->vertices[mesh->vertex_indices[triangle_indices[0]]];
-	node.bounding_box.points[1] = obj_file->vertices[mesh->vertex_indices[triangle_indices[0]]];
+	node.bounding_box.points[0] = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + triangle_indices[0]]];
+	node.bounding_box.points[1] = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + triangle_indices[0]]];
 	for (int triangle_index : triangle_indices) {
         for (int k = 0; k < 3; ++k) {
-			auto& vertex = obj_file->vertices[mesh->vertex_indices[3 * triangle_index + k]];
+			auto& vertex = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + k]];
 			for (int i = 0; i < 3; ++i) {
 				if (vertex.arr()[i] > node.bounding_box.points[1].arr()[i]) {
 					node.bounding_box.points[1].arr()[i] = vertex.arr()[i];
@@ -180,22 +180,22 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
 
     std::vector<int> triangle_indices_copy = triangle_indices;
     std::sort(triangle_indices_copy.begin(), triangle_indices_copy.end(), [&](int a, int b) {
-        auto va = obj_file->vertices[mesh->vertex_indices[3 * a]];
-        auto vb = obj_file->vertices[mesh->vertex_indices[3 * b]];
+        auto va = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * a]];
+        auto vb = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * b]];
         return va.arr()[split_axes] < vb.arr()[split_axes];
         });
 
     int split_index = triangle_indices_copy[triangle_indices_copy.size() / 2];
-    float split_point = obj_file->vertices[mesh->vertex_indices[3 * split_index]].arr()[split_axes];
+    float split_point = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * split_index]].arr()[split_axes];
 
     std::vector<int> left_triangle_indices;
     std::vector<int> right_triangle_indices;
 
     for (int triangle_index : triangle_indices) {
         // if all vertices of triangle are on the left side, add it to the left bounding box
-        if (obj_file->vertices[mesh->vertex_indices[3 * triangle_index + 0]].arr()[split_axes] < split_point &&
-            obj_file->vertices[mesh->vertex_indices[3 * triangle_index + 1]].arr()[split_axes] < split_point &&
-            obj_file->vertices[mesh->vertex_indices[3 * triangle_index + 2]].arr()[split_axes] < split_point
+        if (obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 0]].arr()[split_axes] < split_point &&
+            obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 1]].arr()[split_axes] < split_point &&
+            obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 2]].arr()[split_axes] < split_point
             ) {
             left_triangle_indices.push_back(triangle_index);
         } else {
@@ -233,7 +233,7 @@ void BVH::build(Mesh* mesh, Obj_File* obj_file) {
     _nodes.push_back({});
     _root = _nodes.size()-1;
     std::vector<int> triangle_indices;
-    triangle_indices.resize(mesh->vertex_indices.size() / 3);
+    triangle_indices.resize(mesh->vi_count / 3);
     for (int i = 0; i < triangle_indices.size(); ++i) {
         triangle_indices[i] = i;
     }

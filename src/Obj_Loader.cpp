@@ -32,8 +32,6 @@ void Obj_File::load(const std::string& path) {
             ss >> v.x >> v.z >> v.y;
             normals.push_back(v);
         } else if (word == "f") {
-            int vertex_indices[3];
-            int normal_indices[3];
             for (int k = 0; k < 3; ++k) {
                 std::string vertex;
                 ss >> vertex;
@@ -47,9 +45,18 @@ void Obj_File::load(const std::string& path) {
                         values[i] = -1;
                     }
                 }
-                meshes.back().vertex_indices.push_back(values[0]-1);
+                if (meshes.back().vi_count == 0) {
+                    meshes.back().vi_first = vertex_indices.size();
+                }
+                meshes.back().vi_count++;
+                vertex_indices.push_back(values[0] - 1);
+
                 if (values[2] != -1) {
-                    meshes.back().normal_indices.push_back(values[2]-1);
+					if (meshes.back().ni_count == 0) {
+						meshes.back().ni_first = normal_indices.size();
+					}
+					meshes.back().ni_count++;
+                    normal_indices.push_back(values[2] - 1);
                 }
             }
         }
