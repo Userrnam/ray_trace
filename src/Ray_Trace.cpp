@@ -138,7 +138,7 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 		const Mesh& mesh = obj.meshes[world->mesh_indices[mesh_index]];
 
 		std::vector<int> triangle_indices;
-		if (!mesh.bvh.intersect(ray, triangle_indices)) {
+		if (!mesh.bvh.intersect(&obj, ray, triangle_indices)) {
 			continue;
 		}
 

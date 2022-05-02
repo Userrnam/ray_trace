@@ -23,17 +23,13 @@ struct BVH_Node {
 };
 
 class BVH {
-    std::vector<BVH_Node> _nodes;
-    int _root;
+    int _first = 0; // point to nodes in obj file
 
     BVH_Node build_recursive(struct Obj_File* obj_file, struct Mesh* mesh, int split_axes, const std::vector<int>& triangle_indices);
 public:
     void build(struct Mesh* mesh, struct Obj_File* obj_file);
 
     // returns vector of triangles to check.
-    bool intersect(Ray ray, std::vector<int>& triangle_indices) const;
-
-    // used to copy data to GPU
-    const std::vector<BVH_Node>& get_nodes() const { return _nodes; }
+    bool intersect(const struct Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const;
 };
 
