@@ -132,7 +132,7 @@ bool Bounding_Box::intersect(const Ray& ray) const {
     }
 }
 
-bool BVH_Node::intersect(Ray ray, std::vector<int>& _vertex_indices, std::vector<int>& _normal_indices) const {
+bool BVH_Node::intersect(const std::vector<BVH_Node>& nodes, Ray ray, std::vector<int>& _vertex_indices, std::vector<int>& _normal_indices) const {
     if (!bounding_box.intersect(ray)) {
         return false;
     }
@@ -146,42 +146,37 @@ bool BVH_Node::intersect(Ray ray, std::vector<int>& _vertex_indices, std::vector
         }
         return true;
     } else {
-        if (!left || !right) {
-            int k = 532;
-        }
+        assert(left != -1);
+        assert(right != -1);
 
-        assert(left);
-        assert(right);
-
-        bool l = left->intersect(ray, _vertex_indices, _normal_indices);
-        bool r = right->intersect(ray, _vertex_indices, _normal_indices);
+        bool l = nodes[left].intersect(nodes, ray, _vertex_indices, _normal_indices);
+        bool r = nodes[right].intersect(nodes, ray, _vertex_indices, _normal_indices);
 
         return l || r;
     }
 }
 
-BVH_Node* BVH::build_recursive(Obj_File* obj_file, int split_axes, const std::vector<int>& vertex_indices, const std::vector<int>& normal_indices) {
-    // allocate memory for root
-    auto node = new BVH_Node;
+BVH_Node BVH::build_recursive(Obj_File* obj_file, int split_axes, const std::vector<int>& vertex_indices, const std::vector<int>& normal_indices) {
+    BVH_Node node = {};
 
     // calculate bounding volume.
-	node->bounding_box.points[0] = obj_file->vertices[vertex_indices[0]];
-	node->bounding_box.points[1] = obj_file->vertices[vertex_indices[0]];
+	node.bounding_box.points[0] = obj_file->vertices[vertex_indices[0]];
+	node.bounding_box.points[1] = obj_file->vertices[vertex_indices[0]];
 	for (int index : vertex_indices) {
 		auto& vertex = obj_file->vertices[index];
 		for (int i = 0; i < 3; ++i) {
-			if (vertex.arr()[i] > node->bounding_box.points[1].arr()[i]) {
-				node->bounding_box.points[1].arr()[i] = vertex.arr()[i];
+			if (vertex.arr()[i] > node.bounding_box.points[1].arr()[i]) {
+				node.bounding_box.points[1].arr()[i] = vertex.arr()[i];
 			}
-			if (vertex.arr()[i] < node->bounding_box.points[0].arr()[i]) {
-				node->bounding_box.points[0].arr()[i] = vertex.arr()[i];
+			if (vertex.arr()[i] < node.bounding_box.points[0].arr()[i]) {
+				node.bounding_box.points[0].arr()[i] = vertex.arr()[i];
 			}
 		}
 	}
 
     if (vertex_indices.size() < 20) {
-        node->vertex_indices = vertex_indices;
-        node->normal_indices = normal_indices;
+        node.vertex_indices = vertex_indices;
+        node.normal_indices = normal_indices;
         return node;
     }
 
@@ -222,43 +217,37 @@ BVH_Node* BVH::build_recursive(Obj_File* obj_file, int split_axes, const std::ve
 
     // all indices on the left 
     if (left_vertex_indices.size() == 0) {
-        node->vertex_indices = right_vertex_indices;
-        node->normal_indices = right_normal_indices;
+        node.vertex_indices = right_vertex_indices;
+        node.normal_indices = right_normal_indices;
         return node;
     }
     // all indices on the right 
     if (right_vertex_indices.size() == 0) {
-        node->vertex_indices = left_vertex_indices;
-        node->normal_indices = left_normal_indices;
+        node.vertex_indices = left_vertex_indices;
+        node.normal_indices = left_normal_indices;
         return node;
     }
 
     split_axes = (split_axes + 1) % 3;
 
-    node->left  = build_recursive(obj_file, split_axes, left_vertex_indices, left_normal_indices);
-    node->right = build_recursive(obj_file, split_axes, right_vertex_indices, right_normal_indices);
+    _nodes.push_back({});
+    node.left = _nodes.size()-1;
+    _nodes[node.left] = build_recursive(obj_file, split_axes, left_vertex_indices, left_normal_indices);
+
+    _nodes.push_back({});
+    node.right = _nodes.size()-1;
+    _nodes[node.right] = build_recursive(obj_file, split_axes, right_vertex_indices, right_normal_indices);
 
     return node;
 }
 
 void BVH::build(Mesh* mesh, Obj_File* obj_file) {
-    _root = build_recursive(obj_file, 0, mesh->vertex_indices, mesh->normal_indices);
-}
-
-void BVH::destroy_recursive(BVH_Node *node) {
-    if (!node) {
-        return;
-    }
-	destroy_recursive(node->left);
-	destroy_recursive(node->right);
-    delete node;
-}
-
-void BVH::destroy() {
-    destroy_recursive(_root);
+    _nodes.push_back({});
+    _root = _nodes.size()-1;
+    _nodes[_root] = build_recursive(obj_file, 0, mesh->vertex_indices, mesh->normal_indices);
 }
 
 bool BVH::intersect(Ray ray, std::vector<int>& vertex_indices, std::vector<int>& normal_indices) const {
-    return _root->intersect(ray, vertex_indices, normal_indices);
+    return _nodes[_root].intersect(_nodes, ray, vertex_indices, normal_indices);
 }
 
