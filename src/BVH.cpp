@@ -132,22 +132,22 @@ bool Bounding_Box::intersect(const Ray& ray) const {
     }
 }
 
-bool BVH_Node::intersect(const std::vector<BVH_Node>& nodes, Ray ray, std::vector<int>& _triangle_indices) const {
+bool BVH_Node::intersect(const Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const {
     if (!bounding_box.intersect(ray)) {
         return false;
     }
     // it's a leaf
-    if (triangle_indices.size()) {
-        for (int i : triangle_indices) {
-            _triangle_indices.push_back(i);
+    if (triangle_count) {
+        for (int i = 0; i < triangle_count; ++i) {
+            triangle_indices.push_back(obj_file->triangle_indices[first_triangle + i]);
         }
         return true;
     } else {
         assert(left != -1);
         assert(right != -1);
 
-        bool l = nodes[left].intersect(nodes, ray, _triangle_indices);
-        bool r = nodes[right].intersect(nodes, ray, _triangle_indices);
+        bool l = obj_file->bvh_nodes[left].intersect(obj_file, ray, triangle_indices);
+        bool r = obj_file->bvh_nodes[right].intersect(obj_file, ray, triangle_indices);
 
         return l || r;
     }
@@ -174,7 +174,11 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
 	}
 
     if (triangle_indices.size() < 10) {
-        node.triangle_indices = triangle_indices;
+        node.first_triangle = obj_file->triangle_indices.size();
+        node.triangle_count = triangle_indices.size();
+        for (int triangle_index : triangle_indices) {
+            obj_file->triangle_indices.push_back(triangle_index);
+        }
         return node;
     }
 
@@ -203,16 +207,13 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
         }
     }
 
-    // all indices on the right 
-    if (left_triangle_indices.size() == 0) {
-        assert(right_triangle_indices.size() == triangle_indices.size());
-        node.triangle_indices = right_triangle_indices;
-        return node;
-    }
-    // all indices on the left 
-    if (right_triangle_indices.size() == 0) {
-        assert(left_triangle_indices.size() == triangle_indices.size());
-        node.triangle_indices = left_triangle_indices;
+    // all indices on one side
+    if (left_triangle_indices.size() == 0 || right_triangle_indices.size() == 0) {
+        node.first_triangle = obj_file->triangle_indices.size();
+        node.triangle_count = triangle_indices.size();
+        for (int triangle_index : triangle_indices) {
+            obj_file->triangle_indices.push_back(triangle_index);
+        }
         return node;
     }
 
@@ -241,6 +242,6 @@ void BVH::build(Mesh* mesh, Obj_File* obj_file) {
 }
 
 bool BVH::intersect(const Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const {
-    return obj_file->bvh_nodes[_first].intersect(obj_file->bvh_nodes, ray, triangle_indices);
+    return obj_file->bvh_nodes[_first].intersect(obj_file, ray, triangle_indices);
 }
 

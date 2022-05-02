@@ -16,10 +16,11 @@ struct BVH_Node {
     int left = -1;
     int right = -1;
 
-    std::vector<int> triangle_indices;
+    int first_triangle = 0;
+    int triangle_count = 0;
 
     // returns vector of triangles to check.
-    bool intersect(const std::vector<BVH_Node>& nodes, Ray ray, std::vector<int>& triangle_indices) const;
+    bool intersect(const struct Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const;
 };
 
 class BVH {

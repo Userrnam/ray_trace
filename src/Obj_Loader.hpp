@@ -18,7 +18,11 @@ struct Mesh {
 
 // contains everything about meshes in file. Meshes do not store anything, they just refference data in this structure.
 struct Obj_File {
+    // refferenced by BVH
     std::vector<BVH_Node> bvh_nodes;
+    std::vector<int> triangle_indices;
+
+    // refferenced by Mesh
     std::vector<int> vertex_indices;
     std::vector<int> normal_indices;
 
