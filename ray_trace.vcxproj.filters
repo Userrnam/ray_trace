@@ -10,6 +10,7 @@
     <ClCompile Include="src\stb_impl.cpp" />
     <ClCompile Include="src\BVH.cpp" />
     <ClCompile Include="src\Job_System.cpp" />
+    <ClCompile Include="src\GPURenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.hpp" />
@@ -24,5 +25,10 @@
     <ClInclude Include="src\BVH.hpp" />
     <ClInclude Include="src\Job_System.hpp" />
     <ClInclude Include="src\Renderer.hpp" />
+    <ClInclude Include="src\GPURenderer.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernels\kernel.cl" />
+    <None Include="kernels\main.cl" />
   </ItemGroup>
 </Project>

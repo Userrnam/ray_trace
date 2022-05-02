@@ -32,5 +32,8 @@ public:
 
     // returns vector of triangles to check.
     bool intersect(Ray ray, std::vector<int>& triangle_indices) const;
+
+    // used to copy data to GPU
+    const std::vector<BVH_Node>& get_nodes() const { return _nodes; }
 };
 

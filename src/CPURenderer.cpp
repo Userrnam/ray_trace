@@ -50,13 +50,12 @@ void CPURenderer::run() {
     global.world = _world;
     global.iteration = _iteration;
     global.samples = 1;
-    global.ray_bounce = 5;
+    global.ray_bounce = _ray_bounce;
 
     std::vector<Ray_Params> params;
     params.resize(_camera.get_width() * _camera.get_height());
 
     int _samples = 1;
-    int ray_bounce = _ray_bounce;
     while (!_stop) {
         Ray ray;
         vec3 color;
