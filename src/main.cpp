@@ -16,8 +16,8 @@ int main() {
 	World world;
 	world.obj.load("cornell_box.obj");
 
-	for (const auto& mesh : world.obj.meshes) {
-		std::cout << mesh.name << std::endl;
+	for (auto name : world.obj.mesh_index) {
+		std::cout << name.first << std::endl;
 	}
 
 	world.add_material("sky", {
@@ -55,8 +55,8 @@ int main() {
 	world.add_obj("Suzanne", "yellow_glass");
 
 	Application app;
-	if (!app.init(800, 600, new CPURenderer(6))) {
-	//if (!app.init(800, 600, new GPURenderer)) {
+	//if (!app.init(800, 600, new CPURenderer(6))) {
+	if (!app.init(800, 600, new GPURenderer)) {
 		return -1;
 	}
 

@@ -10,7 +10,6 @@
 
 struct Mesh {
     BVH bvh;
-    std::string name;
     int vi_first = 0; int vi_count = 0; // vertex indices
     int ni_first = 0; int ni_count = 0; // normal indices
     int material_index = 0;

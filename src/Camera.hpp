@@ -3,13 +3,12 @@
 #include "Ray_Trace.hpp"
 
 
-// alignment required for gpu
 class Camera {
-	alignas(16) vec3 _pos;
-	alignas(16) vec3 _dir;
-	alignas(16) vec3 _center;
-	alignas(16) vec3 _vertical;
-	alignas(16) vec3 _horizontal;
+	vec3 _pos;
+	vec3 _dir;
+	vec3 _center;
+	vec3 _vertical;
+	vec3 _horizontal;
 	int _width, _height;
 	float _lense_distance;
 public:
@@ -87,3 +86,5 @@ public:
 		return ray;
 	}
 };
+
+

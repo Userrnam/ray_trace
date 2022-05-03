@@ -42,6 +42,8 @@ GPURenderer::GPURenderer() {
 }
 
 GPURenderer::~GPURenderer() {
+	/*
+	
 	clFlush(_command_queue);
 	clFinish(_command_queue);
 
@@ -58,53 +60,62 @@ GPURenderer::~GPURenderer() {
 
 	clReleaseCommandQueue(_command_queue);
 	clReleaseContext(_context);
+	*/
 }
 
 void GPURenderer::set_world(World* world) {
 	std::lock_guard<std::mutex> guard(_restart_mutex);
 	_restart = true;
 
-	// remove everything
-	if (_vertices)  clReleaseMemObject(_vertices);
-	if (_normals)   clReleaseMemObject(_normals);
-	if (_meshes)    clReleaseMemObject(_meshes);
-	if (_materials) clReleaseMemObject(_materials);
-
-	for (auto mesh : _meshes_vector) {
-		clReleaseMemObject(mesh.bvh);
-		clReleaseMemObject(mesh.normal_indices);
-		clReleaseMemObject(mesh.vertex_indices);
-	}
-	_meshes_vector.clear();
-
-#define CREATE_AND_WRITE(mem, vec) \
-	mem = clCreateBuffer(_context, CL_MEM_READ_ONLY, vec.size() * sizeof(vec[0]), NULL, &ret); assert(ret == 0); \
-	ret = clEnqueueWriteBuffer(_command_queue, mem, CL_TRUE, 0, vec.size() * sizeof(vec[0]), \
+#define CREATE_AND_WRITE(arr, vec) \
+	if (arr.data) clReleaseMemObject(arr.data); \
+	arr.data = clCreateBuffer(_context, CL_MEM_READ_ONLY, vec.size() * sizeof(vec[0]), NULL, &ret); assert(ret == 0); \
+	arr.count = vec.size(); \
+	ret = clEnqueueWriteBuffer(_command_queue, arr.data, CL_TRUE, 0, vec.size() * sizeof(vec[0]), \
 		vec.data(), 0, NULL, NULL); assert(ret == 0)
 
 	cl_int ret;
-	CREATE_AND_WRITE(_vertices, world->obj.vertices);
-	CREATE_AND_WRITE(_normals, world->obj.normals);
-	CREATE_AND_WRITE(_materials, world->materials);
+	CREATE_AND_WRITE(gpu_world.materials, world->materials);
+	CREATE_AND_WRITE(gpu_world.mesh_indices, world->mesh_indices);
+	CREATE_AND_WRITE(gpu_world.bvh_nodes, world->obj.bvh_nodes);
+	CREATE_AND_WRITE(gpu_world.triangle_indices, world->obj.triangle_indices);
 
-	//for (int mesh_index : world->mesh_indices) {
-		//const auto& mesh = world->obj.meshes[mesh_index];
-		
-		//GPUMesh gpu_mesh;
-		//CREATE_AND_WRITE(gpu_mesh.bvh, mesh.bvh.get_nodes());
-		//CREATE_AND_WRITE(gpu_mesh.vertex_indices, mesh.vertex_indices);
-		//CREATE_AND_WRITE(gpu_mesh.normal_indices, mesh.normal_indices);
+	CREATE_AND_WRITE(gpu_world.vertex_indices, world->obj.vertex_indices);
+	CREATE_AND_WRITE(gpu_world.normal_indices, world->obj.normal_indices);
 
-		//_meshes_vector.push_back(gpu_mesh);
-	//}
+	CREATE_AND_WRITE(gpu_world.vertices, world->obj.vertices);
+	CREATE_AND_WRITE(gpu_world.normals, world->obj.normals);
 
-	//CREATE_AND_WRITE(_meshes, _meshes_vector);
+	CREATE_AND_WRITE(gpu_world.meshes, world->obj.meshes);
+#undef CREATE_AND_WRITE
 }
 
 void GPURenderer::set_camera(Camera camera) {
 	std::lock_guard<std::mutex> guard(_restart_mutex);
 	_camera = camera;
 	_restart = true;
+}
+
+void GPURenderer::set_kernel_world(int start, cl_kernel kernel) {
+	cl_int ret;
+
+#define SET_WORLD_PARAMETER(i, vec) \
+	ret = clSetKernelArg(kernel, start + 2 * i, sizeof(cl_mem), &vec.data); assert(ret == 0); \
+	ret = clSetKernelArg(kernel, start + 2 * i+1, sizeof(int), &vec.count); assert(ret == 0)
+
+	SET_WORLD_PARAMETER(0, gpu_world.materials);
+	SET_WORLD_PARAMETER(1, gpu_world.mesh_indices);
+	SET_WORLD_PARAMETER(2, gpu_world.bvh_nodes);
+	SET_WORLD_PARAMETER(3, gpu_world.triangle_indices);
+
+	SET_WORLD_PARAMETER(4, gpu_world.vertex_indices);
+	SET_WORLD_PARAMETER(5, gpu_world.normal_indices);
+
+	SET_WORLD_PARAMETER(6, gpu_world.vertices);
+	SET_WORLD_PARAMETER(7, gpu_world.normals);
+
+	SET_WORLD_PARAMETER(8, gpu_world.meshes);
+#undef SET_WORLD_PARAMETER
 }
 
 void GPURenderer::run() {
@@ -116,17 +127,20 @@ void GPURenderer::run() {
 	cl_mem image = clCreateBuffer(_context, CL_MEM_WRITE_ONLY, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
 	assert(ret == 0);
 
-	auto src = read_file("kernels/main.cl");
-	char* data = &src[0];
-	size_t size = src.size();
+	auto src_main = read_file("kernels/main.cl");
+	char *data[] = {
+		&src_main[0],
+	};
+	size_t sizes[] = {
+		src_main.size(),
+	};
 
 	// create kernel
-	cl_program program = clCreateProgramWithSource(_context, 1, (const char**)&data, (const size_t*)&size, &ret);
+	cl_program program = clCreateProgramWithSource(_context, 1, (const char **)data, sizes, &ret);
 	assert(ret == 0);
-	ret = clBuildProgram(program, 1, &_device_id, NULL, NULL, NULL);
-	assert(ret == 0);
+	ret = clBuildProgram(program, 1, &_device_id, "-I kernels", NULL, NULL);
 
-	{
+	if (ret) {
 		char log[512];
 		size_t info_size = 0;
 		ret = clGetProgramBuildInfo(program, _device_id, CL_PROGRAM_BUILD_LOG, 512, log, &info_size);
@@ -134,6 +148,7 @@ void GPURenderer::run() {
 		if (info_size) {
 			std::cout << log << std::endl;
 		}
+		assert(0);
 	}
 
 	cl_kernel kernel = clCreateKernel(program, "main", &ret);
@@ -141,11 +156,10 @@ void GPURenderer::run() {
 
 	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &image);
 
-	int width = _camera.get_width();
-	ret = clSetKernelArg(kernel, 1, sizeof(int), &width);
+	ret = clSetKernelArg(kernel, 1, sizeof(Camera), &_camera);
 	assert(ret == 0);
 
-	ret = clSetKernelArg(kernel, 2, sizeof(Camera), &_camera);
+	set_kernel_world(2, kernel);
 
 	// contents of GPU buffer is copied here due to alignment requirements.
 	std::vector<float> tmp(4 * _rendered_image.size());
@@ -167,12 +181,10 @@ void GPURenderer::run() {
 			// update kernel args
 			ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &image);
 
-			int width = _camera.get_width();
-			ret = clSetKernelArg(kernel, 1, sizeof(int), &width);
+			ret = clSetKernelArg(kernel, 1, sizeof(Camera), &_camera);
 			assert(ret == 0);
 
-			ret = clSetKernelArg(kernel, 2, sizeof(Camera), &_camera);
-			assert(ret == 0);
+			set_kernel_world(2, kernel);
 		}
 
 		// Execute the kernel

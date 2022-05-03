@@ -19,7 +19,6 @@ void Obj_File::load(const std::string& path) {
             // new mesh
             ss >> word;
             meshes.push_back({});
-            meshes.back().name = word;
             mesh_index[word] = meshes.size() - 1;
         } else if (word == "v") {
             // vertex

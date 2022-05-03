@@ -16,24 +16,31 @@ class GPURenderer : public Renderer {
     cl_context _context = nullptr;
     cl_command_queue _command_queue = nullptr;
 
-    cl_mem _vertices = nullptr;
-    cl_mem _normals = nullptr;
-    cl_mem _indices = nullptr;
-    cl_mem _materials = nullptr;
-
-    struct GPUMesh {
-        cl_mem bvh;
-        cl_mem vertex_indices;
-        cl_mem normal_indices;
+    struct arr {
+        cl_mem data;
+        int count;
     };
 
-    cl_mem _meshes;
-    std::vector<GPUMesh> _meshes_vector;
+    struct {
+        arr materials;
+        arr mesh_indices;
+        arr bvh_nodes;
+        arr triangle_indices;
+
+        arr vertex_indices;
+        arr normal_indices;
+
+        arr vertices;
+        arr normals;
+
+        arr meshes;
+    } gpu_world;
 
     int _ray_bounce = 0;
     int _iteration = 0;
 
     bool _stop = false;
+    void set_kernel_world(int start, cl_kernel kernel);
 public:
     GPURenderer();
     ~GPURenderer();
