@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <assert.h>
 
 #include "Math.hpp"
 #include "Obj_Loader.hpp"
@@ -28,13 +29,24 @@ struct Sphere {
 
 struct World {
 	std::vector<Material> materials;
+	std::unordered_map<std::string, int> material_names;
+	
 	std::vector<Plane> planes;
 	std::vector<Sphere> spheres;
 
 	Obj_File obj;
 	std::vector<int> mesh_indices;
 
-	void add_obj(const std::string& name, int material_index) {
+	void add_material(const std::string& name, const Material& mat) {
+		assert(material_names.find(name) == material_names.end());
+		material_names[name] = materials.size();
+		materials.push_back(mat);
+	}
+
+	void add_obj(const std::string& name, const std::string mat_name) {
+		auto it = material_names.find(mat_name);
+		assert(it != material_names.end());
+		int material_index = it->second;
 		mesh_indices.push_back(obj.mesh_index[name]);
 		obj.meshes[obj.mesh_index[name]].material_index = material_index;
 	}

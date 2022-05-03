@@ -45,6 +45,7 @@ ARRAY_DECLARE(Mesh);
 
 typedef struct {
     array(Material) materials;
+    array(int) mesh_indices; // only these meshes are rendered.
     array(Mesh) meshes;
     array(float4) vertices;
     array(float4) normals;
