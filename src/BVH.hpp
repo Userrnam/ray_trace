@@ -8,7 +8,7 @@
 struct Bounding_Box {
 	vec3 points[2];
 
-	bool intersect(const Ray& ray) const;
+	float intersect(const Ray& ray) const;
 };
 
 struct BVH_Node {
@@ -20,7 +20,7 @@ struct BVH_Node {
     int triangle_count = 0;
 
     // returns vector of triangles to check.
-    bool intersect(const struct Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const;
+    bool intersect(const struct Obj_File* obj_file, int vi_start, Ray ray, int* triangle_indices, float *t) const;
 };
 
 class BVH {
@@ -31,6 +31,6 @@ public:
     void build(struct Mesh* mesh, struct Obj_File* obj_file);
 
     // returns vector of triangles to check.
-    bool intersect(const struct Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const;
+    bool intersect(const struct Obj_File* obj_file, int vi_start, Ray ray, int* triangle_index, float *t) const;
 };
 

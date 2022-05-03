@@ -137,39 +137,32 @@ bool ray_cast(World *world, Ray ray, vec3& pos, vec3& normal, int& mat, bool& hi
 	for (int mesh_index = 0; mesh_index < world->mesh_indices.size(); ++mesh_index) {
 		const Mesh& mesh = obj.meshes[world->mesh_indices[mesh_index]];
 
-		std::vector<int> triangle_indices;
-		if (!mesh.bvh.intersect(&obj, ray, triangle_indices)) {
+		float distance;
+		int triangle_index;
+		if (!mesh.bvh.intersect(&obj, mesh.vi_first, ray, &triangle_index, &distance)) {
 			continue;
 		}
 
-		for (int triangle_index : triangle_indices) {
-			float distance = intersect_triangle(ray,
-				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 0]],
-				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 1]],
-				obj.vertices[obj.vertex_indices[mesh.vi_first + 3 * triangle_index + 2]]
-			);
+		vec3 N = obj.normals[obj.normal_indices[mesh.ni_first + 3 * triangle_index]];
 
-			vec3 N = obj.normals[obj.normal_indices[mesh.ni_first + 3 * triangle_index]];
+		bool inside = false;
 
-			bool inside = false;
+		// triangle normal is looking in wrong direction.
+		if (dot(N, ray.dir) > 0) {
+			inside = true;
+			// N = -N;
+			// without this noise will appear
+			distance -= tolerance;
+		}
 
-			// triangle normal is looking in wrong direction.
-			if (dot(N, ray.dir) > 0) {
-				inside = true;
-				// N = -N;
-				// without this noise will appear
-				distance -= tolerance;
-			}
+		if (distance > 0 && distance < min_distance) {
+			hit = true;
+			mat = mesh.material_index;
+			min_distance = distance;
 
-			if (distance > 0 && distance < min_distance) {
-				hit = true;
-				mat = mesh.material_index;
-				min_distance = distance;
-
-				pos = distance * ray.dir + ray.origin;
-				normal = N;
-				hit_from_inside = inside;
-			}
+			pos = distance * ray.dir + ray.origin;
+			normal = N;
+			hit_from_inside = inside;
 		}
 	}
 

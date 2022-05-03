@@ -55,8 +55,8 @@ int main() {
 	world.add_obj("Suzanne", "yellow_glass");
 
 	Application app;
-	//if (!app.init(800, 600, new CPURenderer(6))) {
-	if (!app.init(800, 600, new GPURenderer)) {
+	if (!app.init(800, 600, new CPURenderer(6))) {
+	//if (!app.init(800, 600, new GPURenderer)) {
 		return -1;
 	}
 

@@ -19,135 +19,135 @@ float intersect_p(const Ray& ray, vec3 normal, float d) {
 	return -1;
 }
 
-bool Bounding_Box::intersect(const Ray& ray) const {
-    if (0) {
-		// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
-        //float _rd[4] = { ray.invdir.x, ray.invdir.y, ray.invdir.z, 0.0f };
-        //float _ro[4] = { ray.origin.x, ray.origin.y, ray.origin.z, 0.0f };
-        //float _p0[4] = { points[0].x, points[0].y, points[0].z, 0.0f };
-        //float _p1[4] = { points[1].x, points[1].y, points[1].z, 0.0f };
-        //__m128 rd = _mm_load_ps(_rd);
-        //__m128 ro = _mm_load_ps(_ro);
-        //__m128 p0 = _mm_load_ps(_p0);
-        //__m128 p1 = _mm_load_ps(_p1);
-        //__m128 p0_od = _mm_mul_ps(_mm_sub_ps(p0, ro), rd);
-        //__m128 p1_od = _mm_mul_ps(_mm_sub_ps(p1, ro), rd);
-        //__m128 zero = _mm_set1_ps(0.0f);
-        //__m128 mask_lt = _mm_cmplt_ps(rd, zero);
-        //__m128 mask_ge = _mm_cmpge_ps(rd, zero);
-        //__m128 min = _mm_add_ps(_mm_and_ps(p1_od, mask_lt), _mm_and_ps(p0_od, mask_ge));
-        //__m128 max = _mm_add_ps(_mm_and_ps(p0_od, mask_ge), _mm_and_ps(p0_od, mask_lt));
+#define INSIDE -10.0f
+float Bounding_Box::intersect(const Ray& ray) const {
+	// if ray is inside bounding box return true
+	if (points[0].x < ray.origin.x && ray.origin.x < points[1].x &&
+		points[0].y < ray.origin.y && ray.origin.y < points[1].y &&
+		points[0].z < ray.origin.z && ray.origin.z < points[1].z) {
+		return INSIDE;
+	}
 
-		float tmin =  (points[ray.dir.x <  0].x - ray.origin.x) * ray.invdir.x;
-		float tmax =  (points[ray.dir.x >= 0].x - ray.origin.x) * ray.invdir.x;
-		float tymin = (points[ray.dir.y <  0].y - ray.origin.y) * ray.invdir.y;
-		float tymax = (points[ray.dir.y >= 0].y - ray.origin.y) * ray.invdir.y;
+	// right
+	if (ray.dir.x < -0.001) {
+		float t = (points[1].x - ray.origin.x) * ray.invdir.x;
 
-		if ((tmin > tymax) || (tymin > tmax))
-			return false;
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
+			points[0].z <= p.z && p.z <= points[1].z) {
+			return t;
+		}
+	}
+	// back
+	if (ray.dir.y < -0.001) {
+		float t = (points[1].y - ray.origin.y) * ray.invdir.y;
 
-		if (tymin > tmin)
-			tmin = tymin;
-		if (tymax < tmax)
-			tmax = tymax;
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+			points[0].z <= p.z && p.z <= points[1].z) {
+			return t;
+		}
+	}
+	// top
+	if (ray.dir.z < -0.001) {
+		float t = (points[1].z - ray.origin.z) * ray.invdir.z;
 
-		float tzmin = (points[ray.dir.z < 0].z - ray.origin.z) * ray.invdir.z;
-		float tzmax = (points[ray.dir.z >= 0].z - ray.origin.z) * ray.invdir.z;
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+			points[0].y <= p.y && p.y <= points[1].y) {
+			return t;
+		}
+	}
 
-		if ((tmin > tzmax) || (tzmin > tmax))
-			return false;
+	// left
+	if (ray.dir.x > 0.001) {
+		float t = (points[0].x - ray.origin.x) * ray.invdir.x;
 
-		return true;
-    }
-    else {
-        // if ray is inside bounding box return true
-        if (points[0].x < ray.origin.x && ray.origin.x < points[1].x &&
-            points[0].y < ray.origin.y && ray.origin.y < points[1].y &&
-            points[0].z < ray.origin.z && ray.origin.z < points[1].z) {
-            return true;
-        }
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
+			points[0].z <= p.z && p.z <= points[1].z) {
+			return t;
+		}
+	}
+	// front
+	if (ray.dir.y > 0.001) {
+		float t = (points[0].y - ray.origin.y) * ray.invdir.y;
 
-        // right
-        if (ray.dir.x < -0.001) {
-            float t = (points[1].x - ray.origin.x) * ray.invdir.x;
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+			points[0].z <= p.z && p.z <= points[1].z) {
+			return t;
+		}
+	}
+	// bottom
+	if (ray.dir.z > 0.001) {
+		float t = (points[0].z - ray.origin.z) * ray.invdir.z;
 
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
-                points[0].z <= p.z && p.z <= points[1].z) {
-                return true;
-            }
-        }
-        // back
-        if (ray.dir.y < -0.001) {
-            float t = (points[1].y - ray.origin.y) * ray.invdir.y;
-
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-                points[0].z <= p.z && p.z <= points[1].z) {
-                return true;
-            }
-        }
-        // top
-        if (ray.dir.z < -0.001) {
-            float t = (points[1].z - ray.origin.z) * ray.invdir.z;
-
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-                points[0].y <= p.y && p.y <= points[1].y) {
-                return true;
-            }
-        }
-
-        // left
-        if (ray.dir.x > 0.001) {
-            float t = (points[0].x - ray.origin.x) * ray.invdir.x;
-
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].y <= p.y && p.y <= points[1].y &&
-                points[0].z <= p.z && p.z <= points[1].z) {
-                return true;
-            }
-        }
-        // front
-        if (ray.dir.y > 0.001) {
-            float t = (points[0].y - ray.origin.y) * ray.invdir.y;
-
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-                points[0].z <= p.z && p.z <= points[1].z) {
-                return true;
-            }
-        }
-        // bottom
-        if (ray.dir.z > 0.001) {
-            float t = (points[0].z - ray.origin.z) * ray.invdir.z;
-
-            vec3 p = ray.origin + t * ray.dir;
-            if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
-                points[0].y <= p.y && p.y <= points[1].y) {
-                return true;
-            }
-        }
-        return false;
-    }
+		vec3 p = ray.origin + t * ray.dir;
+		if (t > 0 && points[0].x <= p.x && p.x <= points[1].x &&
+			points[0].y <= p.y && p.y <= points[1].y) {
+			return t;
+		}
+	}
+	return -1.0f;
 }
 
-bool BVH_Node::intersect(const Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const {
-    if (!bounding_box.intersect(ray)) {
+static float tolerance = 0.0001;
+static float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const vec3& v2) {
+    vec3 e1 = v1 - v0;
+    vec3 e2 = v2 - v0;
+
+    // calculate triple product of e1, e2 and ray.dir
+    vec3 pvec = cross(ray.dir, e2);
+    float det = dot(e1, pvec);
+
+    // ray and plane are parallel
+    if (det < tolerance && det > -tolerance) {
+        return -1;
+    }
+
+    float inv_det = 1 / det;
+    vec3 tvec = ray.origin - v0;
+    float u = dot(tvec, pvec) * inv_det;
+    if (u < 0 || u > 1) {
+        return -1;
+    }
+
+    vec3 qvec = cross(tvec, e1);
+    float v = dot(ray.dir, qvec) * inv_det;
+    if (v < 0 || u + v > 1) {
+        return -1;
+    }
+    return dot(e2, qvec) * inv_det;
+}
+
+bool BVH_Node::intersect(const Obj_File* obj_file, int vi_first, Ray ray, int *triangle_index, float *t) const {
+    if (bounding_box.intersect(ray) == -1.0f) {
         return false;
     }
     // it's a leaf
     if (triangle_count) {
+        bool intersected = false;
         for (int i = 0; i < triangle_count; ++i) {
-            triangle_indices.push_back(obj_file->triangle_indices[first_triangle + i]);
+            int index = obj_file->triangle_indices[first_triangle + i];
+			float distance = intersect_triangle(ray,
+				obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 0]],
+				obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 1]],
+				obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 2]]
+			);
+            if (distance > 0 && distance < *t) {
+                intersected = true;
+                *t = distance;
+                *triangle_index = index;
+            }
         }
-        return true;
+        return intersected;
     } else {
         assert(left != -1);
         assert(right != -1);
 
-        bool l = obj_file->bvh_nodes[left].intersect(obj_file, ray, triangle_indices);
-        bool r = obj_file->bvh_nodes[right].intersect(obj_file, ray, triangle_indices);
+        bool l = obj_file->bvh_nodes[left].intersect(obj_file,  vi_first, ray, triangle_index, t);
+        bool r = obj_file->bvh_nodes[right].intersect(obj_file, vi_first, ray, triangle_index, t);
 
         return l || r;
     }
@@ -241,7 +241,8 @@ void BVH::build(Mesh* mesh, Obj_File* obj_file) {
     obj_file->bvh_nodes[_first] = build_recursive(obj_file, mesh, 0, triangle_indices);
 }
 
-bool BVH::intersect(const Obj_File* obj_file, Ray ray, std::vector<int>& triangle_indices) const {
-    return obj_file->bvh_nodes[_first].intersect(obj_file, ray, triangle_indices);
+bool BVH::intersect(const Obj_File* obj_file, int vi_start, Ray ray, int *triangle_index, float *t) const {
+    *t = FLT_MAX;
+    return obj_file->bvh_nodes[_first].intersect(obj_file, vi_start, ray, triangle_index, t);
 }
 
