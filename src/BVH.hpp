@@ -26,7 +26,7 @@ struct BVH_Node {
 class BVH {
     int _first = 0; // point to nodes in obj file
 
-    BVH_Node build_recursive(struct Obj_File* obj_file, struct Mesh* mesh, int split_axes, const std::vector<int>& triangle_indices);
+    BVH_Node build_recursive(struct Obj_File* obj_file, struct Mesh* mesh, const std::vector<int>& triangle_indices);
 public:
     void build(struct Mesh* mesh, struct Obj_File* obj_file);
 

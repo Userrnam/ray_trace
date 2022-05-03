@@ -153,7 +153,48 @@ bool BVH_Node::intersect(const Obj_File* obj_file, int vi_first, Ray ray, int *t
     }
 }
 
-BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, const std::vector<int>& triangle_indices) {
+int choose_split_axes(struct Obj_File* obj_file, struct Mesh* mesh, const std::vector<int>& triangle_indices) {
+	int split_axes = 0;
+	float best_ratio = 10000;
+    for (int axes = 0; axes < 3; ++axes) {
+		std::vector<int> triangle_indices_copy = triangle_indices;
+		std::sort(triangle_indices_copy.begin(), triangle_indices_copy.end(), [&](int a, int b) {
+			auto va = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * a]];
+			auto vb = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * b]];
+			return va.arr()[axes] < vb.arr()[axes];
+			});
+
+		int split_index = triangle_indices_copy[triangle_indices_copy.size() / 2];
+		float split_point = obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * split_index]].arr()[axes];
+
+		int left = 0;
+		int right = 0;
+
+		for (int triangle_index : triangle_indices) {
+			// if all vertices of triangle are on the left side, add it to the left bounding box
+			if (obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 0]].arr()[axes] < split_point &&
+				obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 1]].arr()[axes] < split_point &&
+				obj_file->vertices[obj_file->vertex_indices[mesh->vi_first + 3 * triangle_index + 2]].arr()[axes] < split_point
+				) {
+				left++;
+			} else {
+				right++;
+			}
+		}
+
+		float ratio = float(left) / float(right);
+		if (ratio < 1.0f) {
+			ratio = float(right) / float(left);
+		}
+		if (ratio < best_ratio) {
+			split_axes = axes;
+			best_ratio = ratio;
+		}
+    }
+	return split_axes;
+}
+
+BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, const std::vector<int>& triangle_indices) {
     BVH_Node node = {};
 
     // calculate bounding volume.
@@ -173,7 +214,7 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
         }
 	}
 
-    if (triangle_indices.size() < 10) {
+    if (triangle_indices.size() < 18) {
         node.first_triangle = obj_file->triangle_indices.size();
         node.triangle_count = triangle_indices.size();
         for (int triangle_index : triangle_indices) {
@@ -181,6 +222,8 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
         }
         return node;
     }
+
+	int split_axes = choose_split_axes(obj_file, mesh, triangle_indices);
 
     std::vector<int> triangle_indices_copy = triangle_indices;
     std::sort(triangle_indices_copy.begin(), triangle_indices_copy.end(), [&](int a, int b) {
@@ -221,11 +264,11 @@ BVH_Node BVH::build_recursive(Obj_File* obj_file, Mesh* mesh, int split_axes, co
 
     obj_file->bvh_nodes.push_back({});
     node.left = obj_file->bvh_nodes.size()-1;
-    obj_file->bvh_nodes[node.left] = build_recursive(obj_file, mesh, split_axes, left_triangle_indices);
+    obj_file->bvh_nodes[node.left] = build_recursive(obj_file, mesh, left_triangle_indices);
 
     obj_file->bvh_nodes.push_back({});
     node.right = obj_file->bvh_nodes.size()-1;
-    obj_file->bvh_nodes[node.right] = build_recursive(obj_file, mesh, split_axes, right_triangle_indices);
+    obj_file->bvh_nodes[node.right] = build_recursive(obj_file, mesh, right_triangle_indices);
 
     return node;
 }
@@ -238,7 +281,7 @@ void BVH::build(Mesh* mesh, Obj_File* obj_file) {
     for (int i = 0; i < triangle_indices.size(); ++i) {
         triangle_indices[i] = i;
     }
-    obj_file->bvh_nodes[_first] = build_recursive(obj_file, mesh, 0, triangle_indices);
+    obj_file->bvh_nodes[_first] = build_recursive(obj_file, mesh, triangle_indices);
 }
 
 bool BVH::intersect(const Obj_File* obj_file, int vi_start, Ray ray, int *triangle_index, float *t) const {
