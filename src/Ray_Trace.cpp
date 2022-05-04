@@ -226,6 +226,74 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 	return world->materials[0].emissive;
 }
 
+vec3 ray_bounce_iterative(World *world, Ray ray, int bounce_count) {
+	vec3 pos, normal;
+	int mat_index;
+	bool hit_from_inside;
+
+	std::vector<vec3> color_stack;
+	std::vector<vec3> emissive_stack;
+	for (int bounce = 0; bounce < bounce_count; ++bounce) {
+		if (ray_cast(world, ray, pos, normal, mat_index, hit_from_inside)) {
+			const auto& mat = world->materials[mat_index];
+
+			ray.origin = pos;
+
+			float cos_theta = -dot(normal, ray.dir); // normal and ray dir have length 1
+			float cos_att = 1; 
+			if (hit_from_inside) {
+				if (mat.refractiveness == 0) {
+					return {};
+				}
+				float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+				float refraction_ratio = mat.n;
+				if (refraction_ratio * sin_theta > 1.0 || probability_value(reflectance(cos_theta, refraction_ratio))) {
+					ray.dir = reflect(ray.dir, normal);
+				} else {
+					ray.dir = refract(ray.dir, normal, refraction_ratio);
+				}
+			} else if (mat.refractiveness > 0) {
+				float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+				float refraction_ratio = 1.0f / mat.n;
+				if (refraction_ratio * sin_theta > 1.0 || probability_value(reflectance(cos_theta, refraction_ratio))) {
+					ray.dir = reflect(ray.dir, normal);
+				} else {
+					ray.dir = refract(ray.dir, normal, refraction_ratio);
+				}
+			} else {
+				cos_att = clamp(cos_theta, 0, 1);
+				if (bounce == 0)  cos_att = 1;
+
+				// update ray
+				vec3 reflection_ray = reflect(ray.dir, normal);
+				ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
+				if (dot(ray.dir, normal) < 0) {
+					ray.dir = -ray.dir;
+				}
+			}
+
+			ray.update();
+
+			emissive_stack.push_back(mat.emissive);
+			color_stack.push_back(cos_att * mat.color);
+
+			//return mat.emissive + cos_att * mul(mat.color, ray_bounce(world, ray, bounce_count - 1, false));
+		}
+		else {
+			emissive_stack.push_back(world->materials[0].emissive);
+			color_stack.push_back(world->materials[0].color);
+			break;
+		}
+	}
+
+	vec3 result = {};
+	for (int i = emissive_stack.size() - 1; i >= 0; --i) {
+		result = emissive_stack[i] + mul(color_stack[i], result);
+	}
+
+	return result;
+}
+
 vec3 ray_color(World *world, const Ray& ray, int sample_count, int bounce_count, int prev_count, vec3 *sum) {
 	vec3 res = {};
 	if (sum == nullptr) {
