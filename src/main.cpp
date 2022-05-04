@@ -43,20 +43,20 @@ int main() {
 
 	world.add_material("white_light", {
 		.color = { 1.0f, 1.0f, 1.0f },
-		.emissive = { 3.0f, 3.0f, 3.0f }
+		.emissive = { 8.0f, 8.0f, 8.0f }
 		});
 
+	world.add_obj("Suzanne", "yellow_glass");
 	world.add_obj("Floor", "grey");
 	world.add_obj("Ceiling", "red");
 	world.add_obj("Light", "white_light");
 	world.add_obj("LeftWall", "red");
 	world.add_obj("RightWall", "red");
 	world.add_obj("BackWall", "red");
-	world.add_obj("Suzanne", "yellow_glass");
 
 	Application app;
-	if (!app.init(800, 600, new CPURenderer(10))) {
-	//if (!app.init(800, 600, new GPURenderer)) {
+	//if (!app.init(800, 600, new CPURenderer(10))) {
+	if (!app.init(800, 600, new GPURenderer)) {
 		return -1;
 	}
 

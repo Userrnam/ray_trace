@@ -16,6 +16,8 @@ class GPURenderer : public Renderer {
     cl_context _context = nullptr;
     cl_command_queue _command_queue = nullptr;
 
+    World* _world;
+
     struct arr {
         cl_mem data;
         int count;
@@ -36,11 +38,11 @@ class GPURenderer : public Renderer {
         arr meshes;
     } gpu_world;
 
-    int _ray_bounce = 0;
+    int _ray_bounce = 5;
     int _iteration = 0;
 
     bool _stop = false;
-    void set_kernel_world(int start, cl_kernel kernel);
+    int set_kernel_world(int start, cl_kernel kernel);
 public:
     GPURenderer();
     ~GPURenderer();

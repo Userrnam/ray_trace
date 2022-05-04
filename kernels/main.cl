@@ -1,13 +1,13 @@
 #include "data_structures.hcl"
 #include "random.hcl"
+#include "ray_trace.hcl"
 
 #define WORLD_COMPONENT(type, name) __global type* name, name##_count
-
-#define VEC3(arr) (float3)(arr[0], arr[1], arr[2])
+#define SET_WORLD_COMPONENT(name) world.name.data = name; world.name.count = name##_count
 
 Ray get_ray(Camera* camera, int x, int y) {
     float v = ((float) y / (float) camera->height) * 2.0f - 1.0f;  // [-1; 1]
-    float u = ((float) x / (float) camera->width) * 2.0f - 1.0f;   // [-1; 1]
+    float u = ((float) x / (float) camera->width)  * 2.0f - 1.0f;  // [-1; 1]
     u += 0.5/camera->width  * rand();
     v += 0.5/camera->height * rand();
 
@@ -32,30 +32,39 @@ __kernel void main(__global float4* out, Camera camera,
     WORLD_COMPONENT(float4, vertices),
     WORLD_COMPONENT(float4, normals),
 
-    WORLD_COMPONENT(Mesh, meshes)
+    WORLD_COMPONENT(Mesh, meshes),
+
+    int bounce_count, int iteration, uint _seed, __global float4 *sum
 ) {
     int gid = get_global_id(0);
     int start = gid * camera.width;
 
-    seed(53256 * gid + 660253 * sin(gid * 52366.0f));
+    float dummy;
+    seed((gid + 5900257) * fract(sin(_seed * 523062147.0f), &dummy));
+
+    World world;
+    SET_WORLD_COMPONENT(materials);
+    SET_WORLD_COMPONENT(mesh_indices);
+    SET_WORLD_COMPONENT(bvh_nodes);
+    SET_WORLD_COMPONENT(triangle_indices);
+
+    SET_WORLD_COMPONENT(vertex_indices);
+    SET_WORLD_COMPONENT(normal_indices);
+
+    SET_WORLD_COMPONENT(vertices);
+    SET_WORLD_COMPONENT(normals);
+
+    SET_WORLD_COMPONENT(meshes);
 
     for (int i = 0; i < camera.width; ++i) {
         int y = gid;
         int x = i;
 
-        float u = -1.0f + (float)x / (float)camera.width * 2.0f;
-        float v = -1.0f + (float)y / (float)get_global_size(0) * 2.0f;
+        Ray ray = get_ray(&camera, x, y);
 
-        int k = 0;
-        if (u*u + v*v < 0.5) {
-            if (probability_value(u * v)) {
-                k = 1;
-            }
-        } else {
-            k = 2;
-        }
-        out[start + i] = (float4)(materials[k].color[0], materials[k].color[1], materials[k].color[2], 1.0f);
+        out[start + i] = ray_color(&world, ray, 1, bounce_count, iteration, &sum[start + i]);
     }
 }
 
 #include "random.cl"
+#include "ray_trace.cl"

@@ -2,8 +2,7 @@
 
 #include <fstream>
 #include <assert.h>
-
-#define MAX_SOURCE_SIZE (0x100000)
+#include <GLFW/glfw3.h>
 
 
 std::string read_file(const std::string& path) {
@@ -67,6 +66,8 @@ void GPURenderer::set_world(World* world) {
 	std::lock_guard<std::mutex> guard(_restart_mutex);
 	_restart = true;
 
+	_world = world;
+
 #define CREATE_AND_WRITE(arr, vec) \
 	if (arr.data) clReleaseMemObject(arr.data); \
 	arr.data = clCreateBuffer(_context, CL_MEM_READ_ONLY, vec.size() * sizeof(vec[0]), NULL, &ret); assert(ret == 0); \
@@ -96,7 +97,7 @@ void GPURenderer::set_camera(Camera camera) {
 	_restart = true;
 }
 
-void GPURenderer::set_kernel_world(int start, cl_kernel kernel) {
+int GPURenderer::set_kernel_world(int start, cl_kernel kernel) {
 	cl_int ret;
 
 #define SET_WORLD_PARAMETER(i, vec) \
@@ -116,6 +117,8 @@ void GPURenderer::set_kernel_world(int start, cl_kernel kernel) {
 
 	SET_WORLD_PARAMETER(8, gpu_world.meshes);
 #undef SET_WORLD_PARAMETER
+
+	return start + 2 * 9;
 }
 
 void GPURenderer::run() {
@@ -125,6 +128,9 @@ void GPURenderer::run() {
 
 	cl_int ret;
 	cl_mem image = clCreateBuffer(_context, CL_MEM_WRITE_ONLY, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
+	assert(ret == 0);
+
+	cl_mem sums = clCreateBuffer(_context, CL_MEM_READ_WRITE, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
 	assert(ret == 0);
 
 	auto src_main = read_file("kernels/main.cl");
@@ -154,42 +160,98 @@ void GPURenderer::run() {
 	cl_kernel kernel = clCreateKernel(program, "main", &ret);
 	assert(ret == 0);
 
-	ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &image);
+	int arg_index = 0;
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(cl_mem), &image);
 
-	ret = clSetKernelArg(kernel, 1, sizeof(Camera), &_camera);
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(Camera), &_camera);
 	assert(ret == 0);
 
-	set_kernel_world(2, kernel);
+	arg_index = set_kernel_world(arg_index, kernel);
+
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_ray_bounce);
+	assert(ret == 0);
+
+	int iteration_arg_index = arg_index;
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_iteration);
+	assert(ret == 0);
+
+	u32 xor_shift_32();
+	u32 seed = xor_shift_32();
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(u32), &time);
+	assert(ret == 0);
+
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(cl_mem), &sums);
+	assert(ret == 0);
 
 	// contents of GPU buffer is copied here due to alignment requirements.
 	std::vector<float> tmp(4 * _rendered_image.size());
+
 	while (!_stop) {
 		while (_restart) {
 			std::lock_guard<std::mutex> guard(_restart_mutex);
 			_restart = false;
 
-			_rendered_image_mutex.lock();
-			_rendered_image.resize(_camera.get_width() * _camera.get_height());
-			_rendered_image_mutex.unlock();
-			tmp.resize(4 * _rendered_image.size());
+			_iteration = 0;
 
-			// recreate image
-			clReleaseMemObject(image);
-			image = clCreateBuffer(_context, CL_MEM_WRITE_ONLY, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
+			if (_camera.get_width() * _camera.get_height() != _rendered_image.size()) {
+				_rendered_image_mutex.lock();
+				_rendered_image.resize(_camera.get_width() * _camera.get_height());
+				_rendered_image_mutex.unlock();
+				tmp.resize(4 * _rendered_image.size());
+
+				// recreate image
+				clReleaseMemObject(image);
+				clReleaseMemObject(sums);
+				image = clCreateBuffer(_context, CL_MEM_WRITE_ONLY, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
+				assert(ret == 0);
+				sums = clCreateBuffer(_context, CL_MEM_READ_WRITE, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
+				assert(ret == 0);
+			}
+
+			// fill image with zeros.
+			cl_event events[2];
+			float pattern = 0;
+			ret = clEnqueueFillBuffer(_command_queue, image, &pattern, sizeof(float), 0,
+				_rendered_image.size() * 4 * sizeof(float), 0, NULL, &events[0]);
+			assert(ret == 0);
+			ret = clEnqueueFillBuffer(_command_queue, sums, &pattern, sizeof(float), 0,
+				_rendered_image.size() * 4 * sizeof(float), 0, NULL, &events[1]);
+			assert(ret == 0);
+			ret = clWaitForEvents(2, events);
 			assert(ret == 0);
 
 			// update kernel args
-			ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), &image);
+			arg_index = 0;
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(cl_mem), &image);
 
-			ret = clSetKernelArg(kernel, 1, sizeof(Camera), &_camera);
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(Camera), &_camera);
 			assert(ret == 0);
 
-			set_kernel_world(2, kernel);
+			arg_index = set_kernel_world(arg_index, kernel);
+
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_ray_bounce);
+			assert(ret == 0);
+
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_iteration);
+			assert(ret == 0);
+
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(float), &seed);
+			assert(ret == 0);
+
+			ret = clSetKernelArg(kernel, arg_index++, sizeof(cl_mem), &sums);
+			assert(ret == 0);
 		}
 
 		// Execute the kernel
 		size_t global_item_size = _camera.get_height();
-		size_t local_item_size = 100;
+		size_t local_item_size = 10;
+
+		ret = clSetKernelArg(kernel, iteration_arg_index, sizeof(int), &_iteration);
+		assert(ret == 0);
+
+		seed = xor_shift_32();
+		ret = clSetKernelArg(kernel, iteration_arg_index+1, sizeof(u32), &seed);
+		assert(ret == 0);
 
 		cl_event compute_finished;
 		ret = clEnqueueNDRangeKernel(_command_queue, kernel, 1, NULL, &global_item_size, &local_item_size, 0, NULL, &compute_finished);
@@ -212,6 +274,7 @@ void GPURenderer::run() {
 	}
 
 	clReleaseMemObject(image);
+	clReleaseMemObject(sums);
 
 	// remove kernel
 	ret = clFlush(_command_queue);

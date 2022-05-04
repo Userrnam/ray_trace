@@ -9,9 +9,11 @@ typedef struct { \
 
 #define array(data_type) Array_##data_type
 
+#define VEC3(v) (float3)(v[0], v[1], v[2])
+
 typedef struct {
-	float color[3];
-	float emissive[3];
+	float color[4];
+	float emissive[4];
 	float specular;
 	float refractiveness;
 	float n;
@@ -21,8 +23,16 @@ ARRAY_DECLARE(Material);
 ARRAY_DECLARE(int);
 ARRAY_DECLARE(float4);
 
+// I don't use float3 due to padding.
 typedef struct {
-    float points[6];
+    float x;
+    float y;
+    float z;
+    float w;
+} Point;
+
+typedef struct {
+    Point points[2];
 } Bounding_Box;
 
 typedef struct {
@@ -60,11 +70,11 @@ typedef struct {
 } World;
 
 typedef struct {
-	float pos[3];
-	float dir[3];
-	float center[3];
-	float vertical[3];
-	float horizontal[3];
+	float pos[4];
+	float dir[4];
+	float center[4];
+	float vertical[4];
+	float horizontal[4];
 	int width, height;
 	float lense_distance;
 } Camera;
