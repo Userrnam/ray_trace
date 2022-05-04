@@ -30,7 +30,7 @@ class BVH {
 public:
     void build(struct Mesh* mesh, struct Obj_File* obj_file);
 
-    // returns vector of triangles to check.
     bool intersect(const struct Obj_File* obj_file, int vi_start, Ray ray, int* triangle_index, float *t) const;
+    bool intersect_iterative(const struct Obj_File* obj_file, int vi_start, Ray ray, int* triangle_index, float *t) const;
 };
 

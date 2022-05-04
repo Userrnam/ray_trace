@@ -286,6 +286,51 @@ void BVH::build(Mesh* mesh, Obj_File* obj_file) {
 
 bool BVH::intersect(const Obj_File* obj_file, int vi_start, Ray ray, int *triangle_index, float *t) const {
     *t = FLT_MAX;
+    //return intersect_iterative(obj_file, vi_start, ray, triangle_index, t);
     return obj_file->bvh_nodes[_first].intersect(obj_file, vi_start, ray, triangle_index, t);
+}
+
+bool BVH::intersect_iterative(const Obj_File* obj_file, int vi_first, Ray ray, int *triangle_index, float *t) const {
+    std::vector<int> stack;
+    stack.push_back(_first);
+
+	static int max_stack_size = 0;
+
+	bool intersected = false;
+    while (stack.size()) {
+		if (stack.size() > max_stack_size) {
+			max_stack_size = stack.size();
+			std::cout << "Stack size: " << max_stack_size << std::endl;
+		}
+
+		auto node = obj_file->bvh_nodes[stack.back()];
+        stack.pop_back();
+		if (node.bounding_box.intersect(ray) == -1.0f) {
+			continue;
+		}
+		// it's a leaf
+		if (node.triangle_count) {
+			for (int i = 0; i < node.triangle_count; ++i) {
+				int index = obj_file->triangle_indices[node.first_triangle + i];
+				float distance = intersect_triangle(ray,
+					obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 0]],
+					obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 1]],
+					obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 2]]
+				);
+				if (distance > 0 && distance < *t) {
+					intersected = true;
+					*t = distance;
+					*triangle_index = index;
+				}
+			}
+		} else {
+			assert(node.left != -1);
+			assert(node.right != -1);
+
+			stack.push_back(node.left);
+			stack.push_back(node.right);
+		}
+    }
+    return intersected;
 }
 

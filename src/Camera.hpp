@@ -29,13 +29,17 @@ public:
 	}
 
 	void rotate_z(float delta) {
+		float tx = _dir.x;
+		float ty = _dir.y;
+
+		_dir.x = tx * cos(delta) - ty * sin(delta);
+		_dir.y = tx * sin(delta) + ty * cos(delta);
+
+		_dir = norm(_dir);
+
 		vec3 _up = { 0, 0, 1 };
 		vec3 right = cross(_up, _dir);
 		vec3 up = cross(_dir, right);
-
-		// this is incorrect and dumb
-		_dir += delta * right;
-		_dir = norm(_dir);
 
 		_center = _pos - _lense_distance * _dir;
 		_vertical   = 0.5 * up;
