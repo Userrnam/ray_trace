@@ -13,11 +13,13 @@ inline u32 xor_shift_32() {
 }
 
 vec3 rand_vec() {
-	vec3 res;
-	res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
-	return res;
+	vec3 res = { 1, 1, 1 };
+	while (dot(res, res) > 1) {
+		res.x = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+		res.y = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+		res.z = -1.0f + float(xor_shift_32() % 1000) / 500.0f;
+	}
+	return norm(res);
 }
 
 // returns 1 with probability p
@@ -206,13 +208,15 @@ vec3 ray_bounce(World *world, Ray ray, int bounce_count, bool first_bounce = tru
 			} else {
 				ray.dir = refract(ray.dir, normal, refraction_ratio);
 			}
+			cos_att = 1;
+			bounce_count++;
 		} else {
 			cos_att = clamp(cos_theta, 0, 1);
 			if (first_bounce)  cos_att = 1;
 
 			// update ray
 			vec3 reflection_ray = reflect(ray.dir, normal);
-			ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
+			ray.dir = lerp(rand_vec(), reflection_ray, mat.specular);
 			if (dot(ray.dir, normal) < 0) {
 				ray.dir = -ray.dir;
 			}
@@ -266,7 +270,7 @@ vec3 ray_bounce_iterative(World *world, Ray ray, int bounce_count) {
 
 				// update ray
 				vec3 reflection_ray = reflect(ray.dir, normal);
-				ray.dir = lerp(norm(rand_vec()), reflection_ray, mat.specular);
+				ray.dir = lerp(rand_vec(), reflection_ray, mat.specular);
 				if (dot(ray.dir, normal) < 0) {
 					ray.dir = -ray.dir;
 				}
@@ -303,5 +307,13 @@ vec3 ray_color(World *world, const Ray& ray, int sample_count, int bounce_count,
 		*sum += ray_bounce(world, ray, bounce_count);
 	}
 
-	return 1.0f / float(sample_count+prev_count) * *sum;
+	vec3 color = 1.0f / float(sample_count + prev_count) * *sum;
+
+	float gamma_correction = 1.0f / 2.2f;
+	color.x = pow(color.x, gamma_correction);
+	color.y = pow(color.y, gamma_correction);
+	color.z = pow(color.z, gamma_correction);
+
+	return color;
 }
+

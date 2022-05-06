@@ -38,15 +38,24 @@ struct World {
 	std::vector<int> mesh_indices;
 
 	void add_material(const std::string& name, const Material& mat) {
-		assert(material_names.find(name) == material_names.end());
+		if (material_names.find(name) != material_names.end()) {
+			std::cout << "Error: material " << name << " already exists.\n";
+			return;
+		}
 		material_names[name] = materials.size();
 		materials.push_back(mat);
 	}
 
 	void add_obj(const std::string& name, const std::string mat_name) {
-		auto it = material_names.find(mat_name);
-		assert(it != material_names.end());
-		int material_index = it->second;
+		if (material_names.find(mat_name) == material_names.end()) {
+			std::cout << "Error: material " << mat_name << " does not exists.\n";
+			return;
+		}
+		if (obj.mesh_index.find(name) == obj.mesh_index.end()) {
+			std::cout << "Error: Object " << name << " does not exists.\n";
+			return;
+		}
+		int material_index = material_names[mat_name];
 		mesh_indices.push_back(obj.mesh_index[name]);
 		obj.meshes[obj.mesh_index[name]].material_index = material_index;
 	}

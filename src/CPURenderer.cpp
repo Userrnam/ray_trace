@@ -55,6 +55,8 @@ void CPURenderer::run() {
     std::vector<Ray_Params> params;
     params.resize(_camera.get_width() * _camera.get_height());
 
+    _restart = true;
+
     int _samples = 1;
     while (!_stop) {
         Ray ray;
@@ -63,7 +65,26 @@ void CPURenderer::run() {
             for (int32_t x = 0; x < _camera.get_width(); ++x) {
 
                 if (_restart) {
-                    goto restart;
+					_camera_update_mutex.lock();
+
+					// restart job system
+					job_system.clear_jobs();
+					job_system.wait_for_complition();
+					global.world = _world;
+					global.iteration = 0;
+					params.resize(_camera.get_width() * _camera.get_height());
+
+					// clear image
+					_rendered_image.clear();
+					_rendered_image.resize(_camera.get_width() * _camera.get_height());
+					_image.clear();
+					_image.resize(_camera.get_width() * _camera.get_height());
+					_sums.clear();
+					_sums.resize(_camera.get_width() * _camera.get_height(), {});
+					_iteration = 0;
+					_restart = false;
+
+					_camera_update_mutex.unlock();
                 }
 
                 ray = _camera.get_ray(x, y);
@@ -93,30 +114,8 @@ void CPURenderer::run() {
 
         // copy data from image to rendered_image
         _rendered_image_mutex.lock();
-        memcpy(&_rendered_image[0], &_image[0], _image.size() * sizeof(_image[0]));
+		memcpy(&_rendered_image[0], &_image[0], _image.size() * sizeof(_image[0]));
         _rendered_image_mutex.unlock();
-        continue;
-restart:
-        _camera_update_mutex.lock();
-
-        // restart job system
-        job_system.clear_jobs();
-        job_system.wait_for_complition();
-        global.world = _world;
-        global.iteration = 0;
-		params.resize(_camera.get_width() * _camera.get_height());
-
-        // clear image
-        _rendered_image.clear();
-        _rendered_image.resize(_camera.get_width() * _camera.get_height());
-        _image.clear();
-        _image.resize(_camera.get_width() * _camera.get_height());
-        _sums.clear();
-        _sums.resize(_camera.get_width() * _camera.get_height(), {});
-        _iteration = 0;
-        _restart = false;
-
-        _camera_update_mutex.unlock();
     }
 
     job_system.destroy();

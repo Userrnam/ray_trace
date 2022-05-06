@@ -30,6 +30,11 @@ GPURenderer::GPURenderer() {
 	std::vector<cl_platform_id> platforms(platform_count);
 	ret = clGetPlatformIDs(platforms.size(), platforms.data(), NULL);
 
+	char buffer[512];
+	size_t size;
+	ret = clGetPlatformInfo(platforms[0], CL_PLATFORM_VERSION, 512, buffer, &size);
+	std::cout << "OpenCL version: " << buffer << std::endl;
+
 	cl_uint device_count;
 	ret = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 1, &_device_id, &device_count);
 	
@@ -144,7 +149,7 @@ void GPURenderer::run() {
 	// create kernel
 	cl_program program = clCreateProgramWithSource(_context, 1, (const char **)data, sizes, &ret);
 	assert(ret == 0);
-	ret = clBuildProgram(program, 1, &_device_id, "-I kernels", NULL, NULL);
+	ret = clBuildProgram(program, 1, &_device_id, "-I kernels -cl-std=CL2.0", NULL, NULL);
 
 	if (ret) {
 		char log[512];

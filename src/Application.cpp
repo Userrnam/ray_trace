@@ -33,7 +33,7 @@ bool Application::init(int width, int height, Renderer *renderer) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    _window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
+    _window = glfwCreateWindow(width, height, "Ray Trace", NULL, NULL);
 
     if (_window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -58,7 +58,7 @@ bool Application::init(int width, int height, Renderer *renderer) {
     // create renderer
     // FIXME: move camera from here!
     //_camera.create2(_width, _height, { 11, 0, 3 }, { 1, 0, 0 }, 1);
-    _camera.create2(_width, _height, { 4, 2, 2 }, { 1, 0, 0 }, 1);
+    _camera.create2(_width, _height, { 8, 0, 3 }, { 1, 0, 0 }, 1);
 
     _renderer = renderer;
     _renderer->set_camera(_camera);
@@ -91,7 +91,8 @@ void Application::run() {
         if (iteration != prev_iteration) {
 			std::cout << "Iteration: " << iteration << std::endl;
             prev_iteration = iteration;
-            if (iteration == 10) {
+            if (iteration == 100) {
+                // Done in 28.5608
                 std::cout << "Done in " << cur - start << std::endl;
             }
         }
