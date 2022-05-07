@@ -25,6 +25,9 @@ class GPURenderer : public Renderer {
 
     struct {
         arr materials;
+
+        arr spheres;
+
         arr mesh_indices;
         arr bvh_nodes;
         arr triangle_indices;
@@ -42,7 +45,7 @@ class GPURenderer : public Renderer {
     int _iteration = 0;
 
     bool _stop = false;
-    int set_kernel_world(int start, cl_kernel kernel);
+    int set_kernel_world_args(int start, cl_kernel kernel);
 public:
     GPURenderer();
     ~GPURenderer();

@@ -4,6 +4,29 @@
 
 const float tolerance = 0.001;
 
+
+float intersect_sphere(Ray ray, Sphere sphere, bool* inside) {
+	float3 a = ray.origin - VEC3(sphere.pos);
+
+	// if ray is inside sphere b_half is < 0
+	float b_half = dot(ray.dir, a);
+	float c = dot(a, a) - sphere.r * sphere.r;
+	float D = b_half * b_half - c;
+
+	if (D <= tolerance)  return -1;
+
+	float rD = sqrt(D);
+	float t = -b_half - sqrt(D);
+
+	// ray is inside sphere. This can happen in refraction
+	if (t < 0) {
+		*inside = true;
+		return -b_half + sqrt(D);
+	}
+	*inside = false;
+	return t;
+}
+
 float intersect_triangle(Ray ray, float3 v0, float3 v1, float3 v2) {
     float3 e1 = v1 - v0;
     float3 e2 = v2 - v0;
@@ -124,7 +147,7 @@ bool intersect_bvh(World* world, int bvh_first, int vi_first, Ray ray, int *tria
 					world->vertices.data[world->vertex_indices.data[vi_first + 3 * index + 1]].xyz,
 					world->vertices.data[world->vertex_indices.data[vi_first + 3 * index + 2]].xyz
 				);
-				if (distance > 0 && distance < *t) {
+				if (distance > tolerance && distance < *t) {
 					intersected = true;
 					*t = distance;
 					*triangle_index = index;
@@ -144,6 +167,25 @@ bool ray_cast(World *world, Ray ray, float3* pos, float3* normal, int* mat, bool
 
 	*mat = 0;
 	*hit_from_inside = false;
+
+    // spheres
+	for (int i = 0; i < world->spheres.count; ++i) {
+        Sphere sphere = world->spheres.data[i];
+		bool inside;
+		float distance = intersect_sphere(ray, sphere, &inside);
+		if (distance > 0 && distance < min_distance) {
+			*hit_from_inside = inside;
+
+			hit = true;
+			*mat = sphere.mat_index;
+			min_distance = distance;
+
+			*pos = distance * ray.dir + ray.origin;
+			*normal = *pos - VEC3(sphere.pos);
+		}
+	}
+
+    // meshes
 	for (int mesh_index = 0; mesh_index < world->mesh_indices.count; ++mesh_index) {
 		Mesh mesh = world->meshes.data[world->mesh_indices.data[mesh_index]];
 
@@ -165,7 +207,7 @@ bool ray_cast(World *world, Ray ray, float3* pos, float3* normal, int* mat, bool
 			d -= tolerance;
 		}
 
-		if (d > 0 && d < min_distance) {
+		if (d > tolerance && d < min_distance) {
 			hit = true;
 			*mat = mesh.material_index;
 			min_distance = d;
@@ -204,15 +246,7 @@ float3 ray_bounce(World *world, Ray ray, int bounce_count) {
 	int mat_index;
 	bool hit_from_inside;
 
-    // FIXME:
-    if (bounce_count > 5) {
-        bounce_count = 5;
-    }
-
-    float3 color_stack[5];
-    float3 emissive_stack[5];
-    int stack_pointer = 0;
-
+    float3 color = 1.0f;
 	for (int bounce = 0; bounce < bounce_count; ++bounce) {
 		if (ray_cast(world, ray, &pos, &normal, &mat_index, &hit_from_inside)) {
 			Material mat = world->materials.data[mat_index];
@@ -240,6 +274,8 @@ float3 ray_bounce(World *world, Ray ray, int bounce_count) {
 				} else {
 					ray.dir = refract(ray.dir, normal, refraction_ratio);
 				}
+                cos_att = 1.0f;
+                bounce--;
 			} else {
 				cos_att = clamp(cos_theta, 0.0f, 1.0f);
 				if (bounce == 0)  cos_att = 1;
@@ -254,25 +290,21 @@ float3 ray_bounce(World *world, Ray ray, int bounce_count) {
 
             ray.invdir = 1.0f / ray.dir;
 
-            emissive_stack[stack_pointer] = VEC3(mat.emissive);
-            color_stack[stack_pointer] = cos_att * VEC3(mat.color);
-            stack_pointer++;
+            if (mat.emissive) {
+                return cos_att * VEC3(mat.color) * color;
+            } else {
+                color *= cos_att * VEC3(mat.color);
+            }
 		}
 		else {
-            emissive_stack[stack_pointer] = VEC3(world->materials.data[0].emissive);
-            color_stack[stack_pointer] = 0;
-            stack_pointer++;
-
-			break;
+            if (world->materials.data[0].emissive) {
+                return VEC3(world->materials.data[0].color);
+            }
+            return 0.0f;
 		}
 	}
 
-	float3 result = 0;
-	for (int i = stack_pointer-1; i >= 0; --i) {
-		result = emissive_stack[i] + color_stack[i] * result;
-	}
-
-	return result;
+	return 0.0f;
 }
 
 float4 ray_color(World *world, Ray ray, int sample_count, int bounce_count, int prev_count, float4 *sum) {

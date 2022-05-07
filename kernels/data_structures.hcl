@@ -13,13 +13,20 @@ typedef struct { \
 
 typedef struct {
 	float color[4];
-	float emissive[4];
+    bool emissive;
 	float specular;
 	float refractiveness;
 	float n;
 } Material;
 
+typedef struct {
+	float pos[4];
+	float r;
+	int mat_index;
+} Sphere;
+
 ARRAY_DECLARE(Material);
+ARRAY_DECLARE(Sphere);
 ARRAY_DECLARE(int);
 ARRAY_DECLARE(float4);
 
@@ -56,6 +63,9 @@ ARRAY_DECLARE(Mesh);
 
 typedef struct {
     array(Material) materials;
+
+    array(Sphere) spheres;
+
     array(int) mesh_indices; // only these meshes are rendered.
     array(BVH_Node) bvh_nodes;
     array(int) triangle_indices;

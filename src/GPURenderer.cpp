@@ -46,25 +46,16 @@ GPURenderer::GPURenderer() {
 }
 
 GPURenderer::~GPURenderer() {
-	/*
-	
-	clFlush(_command_queue);
-	clFinish(_command_queue);
-
-	if (_vertices)  clReleaseMemObject(_vertices);
-	if (_normals)   clReleaseMemObject(_normals);
-	if (_meshes)    clReleaseMemObject(_meshes);
-	if (_materials) clReleaseMemObject(_materials);
-
-	for (auto mesh : _meshes_vector) {
-		clReleaseMemObject(mesh.bvh);
-		clReleaseMemObject(mesh.normal_indices);
-		clReleaseMemObject(mesh.vertex_indices);
-	}
-
-	clReleaseCommandQueue(_command_queue);
-	clReleaseContext(_context);
-	*/
+	clReleaseMemObject(gpu_world.materials.data);
+	clReleaseMemObject(gpu_world.spheres.data);
+	clReleaseMemObject(gpu_world.mesh_indices.data);
+	clReleaseMemObject(gpu_world.bvh_nodes.data);
+	clReleaseMemObject(gpu_world.triangle_indices.data);
+	clReleaseMemObject(gpu_world.vertex_indices.data);
+	clReleaseMemObject(gpu_world.normal_indices.data);
+	clReleaseMemObject(gpu_world.vertices.data);
+	clReleaseMemObject(gpu_world.normals.data);
+	clReleaseMemObject(gpu_world.meshes.data);
 }
 
 void GPURenderer::set_world(World* world) {
@@ -82,6 +73,9 @@ void GPURenderer::set_world(World* world) {
 
 	cl_int ret;
 	CREATE_AND_WRITE(gpu_world.materials, world->materials);
+
+	CREATE_AND_WRITE(gpu_world.spheres, world->spheres);
+
 	CREATE_AND_WRITE(gpu_world.mesh_indices, world->mesh_indices);
 	CREATE_AND_WRITE(gpu_world.bvh_nodes, world->obj.bvh_nodes);
 	CREATE_AND_WRITE(gpu_world.triangle_indices, world->obj.triangle_indices);
@@ -102,28 +96,33 @@ void GPURenderer::set_camera(Camera camera) {
 	_restart = true;
 }
 
-int GPURenderer::set_kernel_world(int start, cl_kernel kernel) {
+int GPURenderer::set_kernel_world_args(int start, cl_kernel kernel) {
 	cl_int ret;
 
-#define SET_WORLD_PARAMETER(i, vec) \
-	ret = clSetKernelArg(kernel, start + 2 * i, sizeof(cl_mem), &vec.data); assert(ret == 0); \
-	ret = clSetKernelArg(kernel, start + 2 * i+1, sizeof(int), &vec.count); assert(ret == 0)
+	int i = start;
+#define SET_WORLD_PARAMETER(vec) \
+	ret = clSetKernelArg(kernel, i++, sizeof(cl_mem), &vec.data); assert(ret == 0); \
+	ret = clSetKernelArg(kernel, i++, sizeof(int), &vec.count); assert(ret == 0)
 
-	SET_WORLD_PARAMETER(0, gpu_world.materials);
-	SET_WORLD_PARAMETER(1, gpu_world.mesh_indices);
-	SET_WORLD_PARAMETER(2, gpu_world.bvh_nodes);
-	SET_WORLD_PARAMETER(3, gpu_world.triangle_indices);
 
-	SET_WORLD_PARAMETER(4, gpu_world.vertex_indices);
-	SET_WORLD_PARAMETER(5, gpu_world.normal_indices);
+	SET_WORLD_PARAMETER(gpu_world.materials);
 
-	SET_WORLD_PARAMETER(6, gpu_world.vertices);
-	SET_WORLD_PARAMETER(7, gpu_world.normals);
+	SET_WORLD_PARAMETER(gpu_world.spheres);
 
-	SET_WORLD_PARAMETER(8, gpu_world.meshes);
+	SET_WORLD_PARAMETER(gpu_world.mesh_indices);
+	SET_WORLD_PARAMETER(gpu_world.bvh_nodes);
+	SET_WORLD_PARAMETER(gpu_world.triangle_indices);
+
+	SET_WORLD_PARAMETER(gpu_world.vertex_indices);
+	SET_WORLD_PARAMETER(gpu_world.normal_indices);
+
+	SET_WORLD_PARAMETER(gpu_world.vertices);
+	SET_WORLD_PARAMETER(gpu_world.normals);
+
+	SET_WORLD_PARAMETER(gpu_world.meshes);
 #undef SET_WORLD_PARAMETER
 
-	return start + 2 * 9;
+	return i;
 }
 
 void GPURenderer::run() {
@@ -149,7 +148,7 @@ void GPURenderer::run() {
 	// create kernel
 	cl_program program = clCreateProgramWithSource(_context, 1, (const char **)data, sizes, &ret);
 	assert(ret == 0);
-	ret = clBuildProgram(program, 1, &_device_id, "-I kernels -cl-std=CL2.0", NULL, NULL);
+	ret = clBuildProgram(program, 1, &_device_id, "-I kernels", NULL, NULL);
 
 	if (ret) {
 		char log[512];
@@ -171,7 +170,7 @@ void GPURenderer::run() {
 	ret = clSetKernelArg(kernel, arg_index++, sizeof(Camera), &_camera);
 	assert(ret == 0);
 
-	arg_index = set_kernel_world(arg_index, kernel);
+	arg_index = set_kernel_world_args(arg_index, kernel);
 
 	ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_ray_bounce);
 	assert(ret == 0);
@@ -232,7 +231,7 @@ void GPURenderer::run() {
 			ret = clSetKernelArg(kernel, arg_index++, sizeof(Camera), &_camera);
 			assert(ret == 0);
 
-			arg_index = set_kernel_world(arg_index, kernel);
+			arg_index = set_kernel_world_args(arg_index, kernel);
 
 			ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_ray_bounce);
 			assert(ret == 0);
@@ -248,8 +247,9 @@ void GPURenderer::run() {
 		}
 
 		// Execute the kernel
-		size_t global_item_size = _camera.get_height();
 		size_t local_item_size = 10;
+		size_t n = (_camera.get_width() * _camera.get_height() + local_item_size - 1) / local_item_size;
+		size_t global_item_size = n * local_item_size;
 
 		ret = clSetKernelArg(kernel, iteration_arg_index, sizeof(int), &_iteration);
 		assert(ret == 0);

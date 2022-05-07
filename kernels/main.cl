@@ -2,7 +2,7 @@
 #include "random.hcl"
 #include "ray_trace.hcl"
 
-#define WORLD_COMPONENT(type, name) __global type* name, name##_count
+#define WORLD_COMPONENT(type, name) __global type* name, int name##_count
 #define SET_WORLD_COMPONENT(name) world.name.data = name; world.name.count = name##_count
 
 Ray get_ray(Camera* camera, int x, int y) {
@@ -22,6 +22,9 @@ Ray get_ray(Camera* camera, int x, int y) {
 __kernel void main(__global float4* out, Camera camera, 
     // world
     WORLD_COMPONENT(Material, materials),
+
+    WORLD_COMPONENT(Sphere, spheres),
+
     WORLD_COMPONENT(int, mesh_indices),
     WORLD_COMPONENT(BVH_Node, bvh_nodes),
     WORLD_COMPONENT(int, triangle_indices),
@@ -36,14 +39,11 @@ __kernel void main(__global float4* out, Camera camera,
 
     int bounce_count, int iteration, uint _seed, __global float4 *sum
 ) {
-    int gid = get_global_id(0);
-    int start = gid * camera.width;
-
-    float dummy;
-    seed((gid + 5900257) * fract(sin(_seed * 523062147.0f), &dummy));
-
     World world;
     SET_WORLD_COMPONENT(materials);
+
+    SET_WORLD_COMPONENT(spheres);
+
     SET_WORLD_COMPONENT(mesh_indices);
     SET_WORLD_COMPONENT(bvh_nodes);
     SET_WORLD_COMPONENT(triangle_indices);
@@ -56,14 +56,23 @@ __kernel void main(__global float4* out, Camera camera,
 
     SET_WORLD_COMPONENT(meshes);
 
-    for (int i = 0; i < camera.width; ++i) {
-        int y = gid;
-        int x = i;
-
-        Ray ray = get_ray(&camera, x, y);
-
-        out[start + i] = ray_color(&world, ray, 1, bounce_count, iteration, &sum[start + i]);
+    int gid = get_global_id(0);
+    if (gid >= camera.width * camera.height) {
+        return;
     }
+
+    int y = gid / camera.width;
+    int x = gid % camera.width;
+
+    float dummy;
+    seed(_seed + gid);
+
+    Ray ray = get_ray(&camera, x, y);
+
+    float4 color = ray_color(&world, ray, 1, bounce_count, iteration, &sum[y * camera.width + x]);
+
+    float val = 1.0f / 2.2f;
+    out[y * camera.width + x] = pow(color, val);
 }
 
 #include "random.cl"
