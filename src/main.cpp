@@ -22,8 +22,6 @@ int main() {
 
 	world.add_material("sky", {
 		.color    = { 0.3f, 0.4f, 0.8f },
-		//.emissive = { 4.0f, 4.0f, 4.0f },
-		.specular = 0.0f
 		});
 
 	world.add_material("red", {
@@ -65,8 +63,8 @@ int main() {
 		});
 
 	world.add_material("white_light", {
-		.color = { 1.0f, 1.0f, 1.0f },
-		.emissive = { 8.0f, 8.0f, 8.0f }
+		.color = { 8.0f, 8.0f, 8.0f },
+		.emissive = true
 		});
 
 	world.add_obj("Cube", "blue");
@@ -93,8 +91,8 @@ int main() {
 	};
 
 	Application app;
-	if (!app.init(800, 600, new CPURenderer(10))) {
-	//if (!app.init(800, 600, new GPURenderer)) {
+	//if (!app.init(800, 600, new CPURenderer(10))) {
+	if (!app.init(800, 600, new GPURenderer)) {
 		return -1;
 	}
 

@@ -9,7 +9,7 @@
 
 struct Material {
 	vec3 color = {};
-	vec3 emissive = {};
+	bool emissive = false;
 	float specular = 0; // 1 - very reflective, 0 - not reflective
 	float refractiveness = 0;
 	float n = 1; // refraction coefficient

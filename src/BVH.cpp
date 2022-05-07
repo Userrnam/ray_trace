@@ -92,7 +92,7 @@ float Bounding_Box::intersect(const Ray& ray) const {
 	return -1.0f;
 }
 
-static float tolerance = 0.0001;
+static float tolerance = 0.0001f;
 static float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, const vec3& v2) {
     vec3 e1 = v1 - v0;
     vec3 e2 = v2 - v0;
@@ -102,7 +102,7 @@ static float intersect_triangle(const Ray& ray, const vec3& v0, const vec3& v1, 
     float det = dot(e1, pvec);
 
     // ray and plane are parallel
-    if (det < tolerance && det > -tolerance) {
+    if (-tolerance < det && det < tolerance) {
         return -1;
     }
 
@@ -135,7 +135,7 @@ bool BVH_Node::intersect(const Obj_File* obj_file, int vi_first, Ray ray, int *t
 				obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 1]],
 				obj_file->vertices[obj_file->vertex_indices[vi_first + 3 * index + 2]]
 			);
-            if (distance > 0 && distance < *t) {
+            if (distance > tolerance && distance < *t) {
                 intersected = true;
                 *t = distance;
                 *triangle_index = index;
