@@ -19,7 +19,7 @@ Ray get_ray(Camera* camera, int x, int y) {
 }
 
 // fill 1 row.
-__kernel void main(__global float4* out, Camera camera, 
+__kernel void kmain(__global float4* out, Camera camera, 
     // world
     WORLD_COMPONENT(Material, materials),
 

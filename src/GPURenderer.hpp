@@ -19,8 +19,8 @@ class GPURenderer : public Renderer {
     World* _world;
 
     struct arr {
-        cl_mem data;
-        int count;
+        cl_mem data = NULL;
+        int count = 0;
     };
 
     struct {

@@ -20,49 +20,49 @@ int main() {
 		std::cout << name.first << std::endl;
 	}
 
-	world.add_material("sky", {
+	world.add_material("sky", Material{
 		.color    = { 0.3f, 0.4f, 0.8f },
 		});
 
-	world.add_material("red", {
+	world.add_material("red", Material{
 		.color = { 0.9f, 0.0f, 0.0f }
 		});
 
-	world.add_material("blue", {
+	world.add_material("blue", Material{
 		.color = { 0.1f, 0.1f, 0.7f },
 		.specular = 1
 		});
 
-	world.add_material("light_grey", {
+	world.add_material("light_grey", Material{
 		.color = { 0.8f, 0.8f, 0.8f }
 		});
 
-	world.add_material("green", {
+	world.add_material("green", Material{
 		.color = { 0.1f, 0.9f, 0.1f }
 		});
 
-	world.add_material("glass", {
+	world.add_material("glass", Material{
 		.color = { 1.0f, 1.0f, 1.0f },
 		.specular = 1.0,
 		.refractiveness = 1.0,
 		.n = 1.7
 		});
 
-	world.add_material("purple", {
+	world.add_material("purple", Material{
 		.color = { 0.39f, 0.26f, 0.84f },
 		});
 
-	world.add_material("mirror", {
+	world.add_material("mirror", Material{
 		.color = { 1.0f, 1.0f, 1.0f },
 		.specular = 1
 		});
 
-	world.add_material("yellow", {
+	world.add_material("yellow", Material{
 		.color = { 1.0f, 1.0f, 0.0f },
 		.specular = 0.2
 		});
 
-	world.add_material("white_light", {
+	world.add_material("white_light", Material{
 		.color = { 8.0f, 8.0f, 8.0f },
 		.emissive = true
 		});
@@ -91,7 +91,7 @@ int main() {
 	};
 
 	Application app;
-	//if (!app.init(800, 600, new CPURenderer(10))) {
+	// if (!app.init(800, 600, new CPURenderer(4))) {
 	if (!app.init(800, 600, new GPURenderer)) {
 		return -1;
 	}

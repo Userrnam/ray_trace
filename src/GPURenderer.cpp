@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <GLFW/glfw3.h>
 
+#include "Random.hpp"
 
 std::string read_file(const std::string& path) {
 	std::fstream file;
@@ -137,7 +138,12 @@ void GPURenderer::run() {
 	cl_mem sums = clCreateBuffer(_context, CL_MEM_READ_WRITE, _rendered_image.size() * 4 * sizeof(float), NULL, &ret);
 	assert(ret == 0);
 
+#ifdef __APPLE__
+	auto src_main = read_file("kernels/all_included.cl");
+#else
 	auto src_main = read_file("kernels/main.cl");
+#endif
+
 	char *data[] = {
 		&src_main[0],
 	};
@@ -161,7 +167,7 @@ void GPURenderer::run() {
 		assert(0);
 	}
 
-	cl_kernel kernel = clCreateKernel(program, "main", &ret);
+	cl_kernel kernel = clCreateKernel(program, "kmain", &ret);
 	assert(ret == 0);
 
 	int arg_index = 0;
@@ -179,9 +185,8 @@ void GPURenderer::run() {
 	ret = clSetKernelArg(kernel, arg_index++, sizeof(int), &_iteration);
 	assert(ret == 0);
 
-	u32 xor_shift_32();
 	u32 seed = xor_shift_32();
-	ret = clSetKernelArg(kernel, arg_index++, sizeof(u32), &time);
+	ret = clSetKernelArg(kernel, arg_index++, sizeof(u32), &seed);
 	assert(ret == 0);
 
 	ret = clSetKernelArg(kernel, arg_index++, sizeof(cl_mem), &sums);

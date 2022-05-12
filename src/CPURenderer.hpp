@@ -10,12 +10,12 @@ class CPURenderer : public Renderer {
     std::vector<vec3> _rendered_image;
     std::vector<vec3> _image; // this image is currently being rendered
     std::vector<vec3> _sums; // sum of all samples
-    World *_world;
-    Camera _camera;
+    World *_world = nullptr;
+    Camera _camera = {};
     bool _stop = false;
     bool _restart = false;
-    std::mutex _rendered_image_mutex;
-    std::mutex _camera_update_mutex;
+    std::mutex _rendered_image_mutex = {};
+    std::mutex _camera_update_mutex = {};
     int _ray_bounce = 5;
     int _iteration = 0;
     int _thread_count = 0;

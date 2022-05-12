@@ -17,7 +17,7 @@ class Job_System {
 	std::queue<Job> _jobs;
 	std::vector<std::thread*> _threads;
 	std::mutex _job_available_mutex;
-	std::atomic<int> _working_threads;
+	std::atomic<int> _working_threads = {};
 	bool _stop = false;
 
 	void worker();
